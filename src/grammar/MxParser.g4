@@ -119,8 +119,7 @@ atomExpr:
 	| False
 	| Null
 	| This
-	| Identifier
-	| This;
+	| Identifier;
 
 lambdaExpr:
 	'[' '&'? ']' ('(' parameterList? ')')? Arrow suite '(' argumentList? ')';
