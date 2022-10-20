@@ -1,4 +1,7 @@
 // Generated from java-escape by ANTLR 4.11.1
+
+package grammar;
+
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -217,66 +220,6 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitExprStmt(MxParser.ExprStmtContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MxParser#unaryOps}.
-	 * @param ctx the parse tree
-	 */
-	void enterUnaryOps(MxParser.UnaryOpsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MxParser#unaryOps}.
-	 * @param ctx the parse tree
-	 */
-	void exitUnaryOps(MxParser.UnaryOpsContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MxParser#shiftOps}.
-	 * @param ctx the parse tree
-	 */
-	void enterShiftOps(MxParser.ShiftOpsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MxParser#shiftOps}.
-	 * @param ctx the parse tree
-	 */
-	void exitShiftOps(MxParser.ShiftOpsContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MxParser#mulLevelOps}.
-	 * @param ctx the parse tree
-	 */
-	void enterMulLevelOps(MxParser.MulLevelOpsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MxParser#mulLevelOps}.
-	 * @param ctx the parse tree
-	 */
-	void exitMulLevelOps(MxParser.MulLevelOpsContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MxParser#addLevelOps}.
-	 * @param ctx the parse tree
-	 */
-	void enterAddLevelOps(MxParser.AddLevelOpsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MxParser#addLevelOps}.
-	 * @param ctx the parse tree
-	 */
-	void exitAddLevelOps(MxParser.AddLevelOpsContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MxParser#compareOps}.
-	 * @param ctx the parse tree
-	 */
-	void enterCompareOps(MxParser.CompareOpsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MxParser#compareOps}.
-	 * @param ctx the parse tree
-	 */
-	void exitCompareOps(MxParser.CompareOpsContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MxParser#equalOps}.
-	 * @param ctx the parse tree
-	 */
-	void enterEqualOps(MxParser.EqualOpsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MxParser#equalOps}.
-	 * @param ctx the parse tree
-	 */
-	void exitEqualOps(MxParser.EqualOpsContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link MxParser#argumentList}.
 	 * @param ctx the parse tree
 	 */
@@ -287,33 +230,157 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitArgumentList(MxParser.ArgumentListContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MxParser#expr}.
+	 * Enter a parse tree produced by the {@code newExpr}
+	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree
 	 */
-	void enterExpr(MxParser.ExprContext ctx);
+	void enterNewExpr(MxParser.NewExprContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MxParser#expr}.
+	 * Exit a parse tree produced by the {@code newExpr}
+	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree
 	 */
-	void exitExpr(MxParser.ExprContext ctx);
+	void exitNewExpr(MxParser.NewExprContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MxParser#atomExpr}.
+	 * Enter a parse tree produced by the {@code indexExpr}
+	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree
 	 */
-	void enterAtomExpr(MxParser.AtomExprContext ctx);
+	void enterIndexExpr(MxParser.IndexExprContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MxParser#atomExpr}.
+	 * Exit a parse tree produced by the {@code indexExpr}
+	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree
 	 */
-	void exitAtomExpr(MxParser.AtomExprContext ctx);
+	void exitIndexExpr(MxParser.IndexExprContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MxParser#lambdaExpr}.
+	 * Enter a parse tree produced by the {@code prefixExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrefixExpr(MxParser.PrefixExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code prefixExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrefixExpr(MxParser.PrefixExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code unaryExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterUnaryExpr(MxParser.UnaryExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code unaryExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitUnaryExpr(MxParser.UnaryExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code lambdaExpr}
+	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree
 	 */
 	void enterLambdaExpr(MxParser.LambdaExprContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MxParser#lambdaExpr}.
+	 * Exit a parse tree produced by the {@code lambdaExpr}
+	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree
 	 */
 	void exitLambdaExpr(MxParser.LambdaExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code memberExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterMemberExpr(MxParser.MemberExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code memberExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitMemberExpr(MxParser.MemberExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code atomExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterAtomExpr(MxParser.AtomExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code atomExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitAtomExpr(MxParser.AtomExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code binaryExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterBinaryExpr(MxParser.BinaryExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code binaryExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitBinaryExpr(MxParser.BinaryExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code postfixExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterPostfixExpr(MxParser.PostfixExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code postfixExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitPostfixExpr(MxParser.PostfixExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code funcCallExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterFuncCallExpr(MxParser.FuncCallExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code funcCallExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitFuncCallExpr(MxParser.FuncCallExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code assignExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterAssignExpr(MxParser.AssignExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code assignExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitAssignExpr(MxParser.AssignExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code parenExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterParenExpr(MxParser.ParenExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code parenExpr}
+	 * labeled alternative in {@link MxParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitParenExpr(MxParser.ParenExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MxParser#atom}.
+	 * @param ctx the parse tree
+	 */
+	void enterAtom(MxParser.AtomContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MxParser#atom}.
+	 * @param ctx the parse tree
+	 */
+	void exitAtom(MxParser.AtomContext ctx);
 }

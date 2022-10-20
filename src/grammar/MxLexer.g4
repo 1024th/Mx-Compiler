@@ -1,5 +1,9 @@
 lexer grammar MxLexer;
 
+@header {
+package grammar;
+}
+
 Add: '+';
 Sub: '-';
 Mul: '*';

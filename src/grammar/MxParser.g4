@@ -1,5 +1,9 @@
 parser grammar MxParser;
 
+@header {
+package grammar;
+}
+
 options {
 	tokenVocab = MxLexer;
 }
@@ -45,74 +49,67 @@ returnStmt: Return expr? Semi;
 
 exprStmt: expr Semi;
 
-unaryOps: (BitNot | LNot | Add | Sub);
-shiftOps: (ShiftL | ShiftR);
-mulLevelOps: (Mul | Div | Mod);
-addLevelOps: (Add | Sub);
-compareOps: (GT | GEq | LT | LEq);
-equalOps: (Eq | NEq);
-
 argumentList: expr (',' expr)*;
 
 // $antlr-format reflowComments false
 expr:
-	atomExpr
-	| '(' expr ')'
-	| New nonArrayType ('[' expr? ']')*
+	atom  #atomExpr
+	| '(' expr ')'  #parenExpr
+	| New nonArrayType (('[' expr ']')+ ('[' ']')*)?  #newExpr
 	// Precedence 1, Left-to-right
 	// ++ -- postfix increment and decrement
 	// () function call
 	// [] Array subscripting
 	// . Structure and union member access
-	| expr (Inc | Dec)
-	| expr '(' argumentList? ')'
-	| expr '[' expr ']'
-	| expr Dot Identifier
+	| expr op = (Inc | Dec)  #postfixExpr
+	| expr '(' argumentList? ')'  #funcCallExpr
+	| expr '[' expr ']'  #indexExpr
+	| expr Dot Identifier  #memberExpr
 	// Precedence 2, Right-to-left
 	// ++ -- 	Prefix increment and decrement
 	// + - 	Unary plus and Minus
 	// ! ~ 	Logical NOT and bitwise NOT
-	| <assoc = right> (Inc | Dec) expr
-	| <assoc = right> unaryOps expr
+	| <assoc = right> op = (Inc | Dec) expr  #prefixExpr
+	| <assoc = right> op = (BitNot | LNot | Add | Sub) expr  #unaryExpr
 	// Precedence 3, Left-to-right
 	// * / % 	Multiplication, division, and remainder
-	| expr mulLevelOps expr
+	| expr op = (Mul | Div | Mod) expr  #binaryExpr
 	// Precedence 4, Left-to-right
 	// + - 	Addition and subtraction
-	| expr addLevelOps expr
+	| expr op = (Add | Sub) expr  #binaryExpr
 	// Precedence 5, Left-to-right
 	// << >> 	Bitwise left shift and right shift
-	| expr shiftOps expr
+	| expr op = (ShiftL | ShiftR) expr  #binaryExpr
 	// Precedence 6, Left-to-right
 	// < <= 	For relational operators < and ≤ respectively
 	// > >= 	For relational operators > and ≥ respectively
-	| expr compareOps expr
+	| expr op = (GT | GEq | LT | LEq) expr  #binaryExpr
 	// Precedence 7, Left-to-right
 	// == != 	For relational = and ≠ respectively
-	| expr equalOps expr
+	| expr op = (Eq | NEq) expr  #binaryExpr
 	// Precedence 8, Left-to-right
 	// & 	Bitwise AND
-	| expr BitAnd expr
+	| expr op = BitAnd expr  #binaryExpr
 	// Precedence 9, Left-to-right
 	// ^ 	Bitwise XOR (exclusive or)
-	| expr BitXor expr
+	| expr op = BitXor expr  #binaryExpr
 	// Precedence 10, Left-to-right
 	// | 	Bitwise OR (inclusive or)
-	| expr BitOr expr
+	| expr op = BitOr expr  #binaryExpr
 	// Precedence 11, Left-to-right
 	// && 	Logical AND
-	| expr LAnd expr
+	| expr op = LAnd expr  #binaryExpr
 	// Precedence 12, Left-to-right
 	// || 	Logical OR
-	| expr LOr expr
+	| expr op = LOr expr  #binaryExpr
 	// Precedence 13, Right-to-left
 	// Assignment
-	| <assoc = right> expr Assign expr
+	| <assoc = right> expr Assign expr  #assignExpr
 	// Precedence ?
 	// Lambda
-	| lambdaExpr;
+	| '[' '&'? ']' ('(' parameterList? ')')? Arrow suite '(' argumentList? ')'  #lambdaExpr;
 
-atomExpr:
+atom:
 	IntegerLiteral
 	| StringLiteral
 	| True
@@ -120,6 +117,3 @@ atomExpr:
 	| Null
 	| This
 	| Identifier;
-
-lambdaExpr:
-	'[' '&'? ']' ('(' parameterList? ')')? Arrow suite '(' argumentList? ')';
