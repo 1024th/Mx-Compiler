@@ -1,24 +1,20 @@
 package ast;
 
-import java.util.ArrayList;
-
+import ast.stmt.SuiteNode;
 import utils.Position;
 
-public class FuncDefNode extends BaseNode {
+public class FuncDefNode extends ASTNode {
   public final String funcName;
   public final TypeNode returnType;
-  public ArrayList<TypeNode> paramTypes;
-  public ArrayList<String> paramNames;
+  public ParamListNode params;
+  public SuiteNode suite;
 
-  public FuncDefNode(String funcName, TypeNode returnType, Position pos) {
+  public FuncDefNode(String funcName, TypeNode returnType, SuiteNode suite, ParamListNode params, Position pos) {
     super(pos);
     this.funcName = funcName;
     this.returnType = returnType;
-  }
-
-  public void addParam(TypeNode type, String name) {
-    paramTypes.add(type);
-    paramNames.add(name);
+    this.suite = suite;
+    this.params = params;
   }
 
   @Override

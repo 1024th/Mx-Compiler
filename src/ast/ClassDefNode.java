@@ -1,16 +1,16 @@
 package ast;
 
-import utils.Position;
-import utils.scope.GlobalScope;
-
 import java.util.ArrayList;
 
-public class ProgramNode extends ASTNode {
-  public ArrayList<ASTNode> defs = new ArrayList<>();
-  public GlobalScope scope = new GlobalScope();
+import utils.Position;
 
-  public ProgramNode(Position pos) {
+public class ClassDefNode extends ASTNode {
+  public final String className;
+  public ArrayList<ASTNode> defs = new ArrayList<>();
+
+  public ClassDefNode(String className, Position pos) {
     super(pos);
+    this.className = className;
   }
 
   @Override

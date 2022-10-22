@@ -1,10 +1,10 @@
 package ast.expr;
 
-import ast.BaseNode;
+import ast.ASTNode;
 import ast.TypeNode;
 import utils.Position;
 
-public abstract class ExprNode extends BaseNode {
+public abstract class ExprNode extends ASTNode {
   public TypeNode type;
   public boolean isLeftVal;
 

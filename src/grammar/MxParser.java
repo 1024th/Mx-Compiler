@@ -1255,6 +1255,8 @@ public class MxParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class ForStmtContext extends ParserRuleContext {
+		public ExprContext forCond;
+		public ExprContext forInc;
 		public TerminalNode For() { return getToken(MxParser.For, 0); }
 		public TerminalNode LParen() { return getToken(MxParser.LParen, 0); }
 		public ForInitStmtContext forInitStmt() {
@@ -1309,7 +1311,7 @@ public class MxParser extends Parser {
 			if (((_la) & ~0x3f) == 0 && ((1L << _la) & 18103167242747910L) != 0) {
 				{
 				setState(171);
-				expr(0);
+				((ForStmtContext)_localctx).forCond = expr(0);
 				}
 			}
 
@@ -1321,7 +1323,7 @@ public class MxParser extends Parser {
 			if (((_la) & ~0x3f) == 0 && ((1L << _la) & 18103167242747910L) != 0) {
 				{
 				setState(175);
-				expr(0);
+				((ForStmtContext)_localctx).forInc = expr(0);
 				}
 			}
 

@@ -6,6 +6,8 @@ import ast.stmt.*;
 public interface ASTVisitor {
   void visit(ProgramNode node);
 
+  void visit(ClassDefNode node);
+  void visit(ClassCtorDefNode node);
   void visit(FuncDefNode node);
   void visit(VarDefNode node);
   void visit(SingleVarDefNode node);
@@ -24,10 +26,12 @@ public interface ASTVisitor {
   void visit(AtomExprNode node);
   void visit(BinaryExprNode node);
   void visit(FuncCallExprNode node);
+  void visit(ParamListNode node);
   void visit(IndexExprNode node);
   void visit(MemberExprNode node);
   void visit(NewExprNode node);
   void visit(PostfixExprNode node);
   void visit(PrefixExprNode node);
   void visit(UnaryExprNode node);
+  void visit(LambdaExprNode node);
 }

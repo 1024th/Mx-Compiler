@@ -2,10 +2,10 @@ package ast;
 
 import utils.Position;
 
-public abstract class BaseNode {
+public abstract class ASTNode {
   public Position pos;
 
-  public BaseNode(Position pos) {
+  public ASTNode(Position pos) {
     this.pos = pos;
   }
 

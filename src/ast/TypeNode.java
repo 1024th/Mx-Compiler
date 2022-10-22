@@ -2,10 +2,10 @@ package ast;
 
 import utils.Position;
 
-public class TypeNode extends BaseNode {
-  public final String typename;
-  public final boolean isArrayType;
-  public final int dimension;
+public class TypeNode extends ASTNode {
+  public String typename;
+  public boolean isArrayType;
+  public int dimension;
 
   public TypeNode(String typename, Position pos) {
     super(pos);

@@ -8,9 +8,10 @@ public class SingleVarDefNode extends StmtNode {
   public String name;
   public ExprNode initExpr;
   
-  public SingleVarDefNode(String name, Position pos) {
+  public SingleVarDefNode(String name, ExprNode initExpr, Position pos) {
     super(pos);
     this.name = name;
+    this.initExpr = initExpr;
   }
 
   @Override

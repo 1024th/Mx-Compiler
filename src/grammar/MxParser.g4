@@ -40,7 +40,7 @@ statement:
 
 ifStmt: If '(' expr ')' statement (Else statement)?;
 whileStmt: While '(' expr ')' statement;
-forStmt: For '(' forInitStmt expr? Semi expr? ')' statement;
+forStmt: For '(' forInitStmt forCond = expr? Semi forInc = expr? ')' statement;
 forInitStmt: varDef | (expr? Semi);
 
 breakStmt: Break Semi;
