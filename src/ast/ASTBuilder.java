@@ -18,8 +18,12 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   public ASTNode visitProgram(ProgramContext ctx) {
     ProgramNode root = new ProgramNode(new Position(ctx));
     boolean hasMain = false;
-    for (var innerCtx : ctx.children) {
-      ASTNode define = visit(innerCtx);
+    for (var i : ctx.children) {
+      if (!(i instanceof ClassDefContext) &&
+          !(i instanceof FuncDefContext) &&
+          !(i instanceof VarDefContext))
+        continue;
+      ASTNode define = visit(i);
       root.defs.add(define);
       if (define instanceof FuncDefNode) {
         logger.info(((FuncDefNode) define).funcName);
@@ -96,18 +100,19 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     TypeNode type = (TypeNode) visit(ctx.type());
     var ret = new VarDefNode(type, new Position(ctx));
     for (var i : ctx.singleVarDef()) {
-      ret.vars.add((SingleVarDefNode) visit(i));
+      ExprNode initExpr = null;
+      if (i.expr() != null) {
+        initExpr = (ExprNode) visit(i.expr());
+      }
+      ret.vars.add(new SingleVarDefNode(type, i.Identifier().getText(), initExpr, new Position(ctx)));
     }
     return ret;
   }
 
   @Override
   public ASTNode visitSingleVarDef(SingleVarDefContext ctx) {
-    ExprNode initExpr = null;
-    if (ctx.expr() != null) {
-      initExpr = (ExprNode) visit(ctx.expr());
-    }
-    return new SingleVarDefNode(ctx.Identifier().getText(), initExpr, new Position(ctx));
+    // Not used
+    return null;
   }
 
   @Override
