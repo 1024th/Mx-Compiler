@@ -8,7 +8,7 @@ import ast.FuncDefNode;
 import utils.Position;
 import utils.error.SemanticError;
 
-public class ClassScope extends BaseScope {
+public class ClassScope extends Scope {
   public String className;
   public Position pos;
   public HashMap<String, FuncDefNode> funcs = new HashMap<>();
@@ -16,7 +16,7 @@ public class ClassScope extends BaseScope {
 
   public ClassScope(String className, GlobalScope parent, Position pos) { // Mx* does not support nested class
                                                                           // definition
-    super(parent);
+    super(parent, false);
     this.className = className;
     this.pos = pos;
   }
@@ -26,6 +26,10 @@ public class ClassScope extends BaseScope {
       throw new SemanticError("redefinition of function '" + func.funcName + "'", func.pos);
     }
     funcs.put(func.funcName, func);
+  }
+
+  public FuncDefNode getFunc(String name) {
+    return this.funcs.get(name);
   }
 
   public void addCtor(ClassCtorDefNode ctor) {

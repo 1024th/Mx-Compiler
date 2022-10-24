@@ -17,7 +17,6 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitProgram(ProgramContext ctx) {
     ProgramNode root = new ProgramNode(new Position(ctx));
-    boolean hasMain = false;
     for (var i : ctx.children) {
       if (!(i instanceof ClassDefContext) &&
           !(i instanceof FuncDefContext) &&
@@ -25,15 +24,6 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
         continue;
       ASTNode define = visit(i);
       root.defs.add(define);
-      if (define instanceof FuncDefNode) {
-        logger.info(((FuncDefNode) define).funcName);
-        if (((FuncDefNode) define).funcName.equals("main")) {
-          hasMain = true;
-        }
-      }
-    }
-    if (!hasMain) {
-      throw new SemanticError("no main function", new Position(ctx.getStop()));
     }
     return root;
   }
@@ -53,7 +43,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitReturnType(ReturnTypeContext ctx) {
     if (ctx.Void() != null) {
-      return new TypeNode("void", new Position(ctx));
+      return new TypeNode("void", false, new Position(ctx));
     }
     return visit(ctx.type());
   }
@@ -61,11 +51,16 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitParameterList(ParameterListContext ctx) {
     var ret = new ParamListNode(new Position(ctx));
-    for (int i = 0; i < ctx.type().size(); ++i) {
-      TypeNode type = (TypeNode) visit(ctx.type(i));
-      ret.add(type, ctx.Identifier(i).getText());
+    for (var i : ctx.parameter()) {
+      ret.add((ParamNode) visit(i));
     }
     return ret;
+  }
+
+  @Override
+  public ASTNode visitParameter(ParameterContext ctx) {
+    TypeNode type = (TypeNode) visit(ctx.type());
+    return new ParamNode(type, ctx.Identifier().getText(), new Position(ctx));
   }
 
   @Override
@@ -118,10 +113,12 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitType(TypeContext ctx) {
     int dim = ctx.LBracket().size();
+    var baseType = ctx.nonArrayType();
+    boolean isClass = baseType.Identifier() != null;
     if (dim == 0) {
-      return new TypeNode(ctx.nonArrayType().getText(), new Position(ctx));
+      return new TypeNode(baseType.getText(), isClass, new Position(ctx));
     }
-    return new TypeNode(ctx.nonArrayType().getText(), dim, new Position(ctx));
+    return new TypeNode(baseType.getText(), isClass, dim, new Position(ctx));
   }
 
   @Override
@@ -203,7 +200,8 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     if (ctx.forInc != null) {
       forInc = (ExprNode) visit(ctx.forInc);
     }
-    return new ForStmtNode(initVar, initExpr, forCond, forInc, new Position(ctx));
+    StmtNode body = (StmtNode) visit(ctx.statement());
+    return new ForStmtNode(initVar, initExpr, forCond, forInc, body, new Position(ctx));
   }
 
   @Override
@@ -244,11 +242,10 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
 
   @Override
   public ASTNode visitNewExpr(NewExprContext ctx) {
-    TypeNode type = new TypeNode(ctx.nonArrayType().getText(), new Position(ctx.nonArrayType()));
+    TypeNode type = new TypeNode(ctx.nonArrayType());
     if (ctx.LBracket().size() >= 0) {
       type.isArrayType = true;
       type.dimension = ctx.LBracket().size();
-      type.typename += "[]".repeat(type.dimension);
     }
     var ret = new NewExprNode(type, new Position(ctx));
     for (var i : ctx.expr()) {
@@ -295,6 +292,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitAtomExpr(AtomExprContext ctx) {
     // TODO: consider how to store the type
+    // set typename to null if the type cannot be immediately indicated
     String typename = null;
     var atom = ctx.atom();
     if (atom.IntegerLiteral() != null) {
@@ -308,7 +306,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     } else if (atom.This() != null) {
       typename = "this";
     }
-    TypeNode type = new TypeNode(typename, new Position(ctx));
+    TypeNode type = new TypeNode(typename, false, new Position(ctx));
     return new AtomExprNode(ctx.getText(), type, atom.Identifier() != null, new Position(ctx));
   }
 
@@ -328,7 +326,9 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
 
   @Override
   public ASTNode visitFuncCallExpr(FuncCallExprContext ctx) {
-    var ret = new FuncCallExprNode((ExprNode) visit(ctx.expr()), new Position(ctx));
+    var func = (ExprNode) visit(ctx.expr());
+    func.isFunc = true;
+    var ret = new FuncCallExprNode(func, new Position(ctx));
     if (ctx.argumentList() != null) {
       for (var i : ctx.argumentList().expr()) {
         ret.args.add((ExprNode) visit(i));

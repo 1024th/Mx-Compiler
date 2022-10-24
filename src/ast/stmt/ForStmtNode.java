@@ -7,13 +7,15 @@ import utils.Position;
 public class ForStmtNode extends StmtNode {
   public VarDefNode initVar;
   public ExprNode initExpr, condition, increase;
+  public StmtNode body;
 
-  public ForStmtNode(VarDefNode initVar, ExprNode initExpr, ExprNode condition, ExprNode increase, Position pos) {
+  public ForStmtNode(VarDefNode initVar, ExprNode initExpr, ExprNode condition, ExprNode increase, StmtNode body, Position pos) {
     super(pos);
     this.initVar = initVar;
     this.initExpr = initExpr;
     this.condition = condition;
     this.increase = increase;
+    this.body = body;
   }
 
   @Override

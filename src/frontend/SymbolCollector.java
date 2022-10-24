@@ -166,4 +166,9 @@ public class SymbolCollector implements ASTVisitor {
     // TODO Auto-generated method stub
   }
 
+  @Override
+  public void visit(ParamNode node) {
+    // TODO Auto-generated method stub
+  }
+
 }

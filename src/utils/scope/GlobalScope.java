@@ -6,12 +6,12 @@ import java.util.logging.Logger;
 import ast.FuncDefNode;
 import utils.error.SemanticError;
 
-public class GlobalScope extends BaseScope {
+public class GlobalScope extends Scope {
   public HashMap<String, ClassScope> classes = new HashMap<>();
   public HashMap<String, FuncDefNode> funcs = new HashMap<>();
 
   public GlobalScope() {
-    super(null);
+    super(null, false);
   }
 
   public void addFunc(FuncDefNode func) {
@@ -19,6 +19,14 @@ public class GlobalScope extends BaseScope {
       throw new SemanticError("redefinition of function '" + func.funcName + "'", func.pos);
     }
     funcs.put(func.funcName, func);
+  }
+
+  public FuncDefNode getFunc(String name) {
+    return this.funcs.get(name);
+  }
+
+  public ClassScope getClass(String name) {
+    return this.classes.get(name);
   }
 
   public void addClass(ClassScope cls) {

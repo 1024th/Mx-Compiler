@@ -50,6 +50,16 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitParameterList(MxParser.ParameterListContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MxParser#parameter}.
+	 * @param ctx the parse tree
+	 */
+	void enterParameter(MxParser.ParameterContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MxParser#parameter}.
+	 * @param ctx the parse tree
+	 */
+	void exitParameter(MxParser.ParameterContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MxParser#classDef}.
 	 * @param ctx the parse tree
 	 */

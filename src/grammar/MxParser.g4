@@ -12,7 +12,8 @@ program: (funcDef | classDef | varDef)* EOF;
 
 funcDef: returnType Identifier '(' parameterList? ')' suite;
 returnType: type | Void;
-parameterList: (type Identifier) (',' type Identifier)*;
+parameterList: (parameter) (',' parameter)*;
+parameter: type Identifier;
 
 classDef:
 	Class Identifier '{' (varDef | classConstructorDef | funcDef)* '}' Semi;
