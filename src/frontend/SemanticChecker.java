@@ -75,21 +75,31 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(ClassDefNode node) {
     this.curScope = this.gScope.getClass(node.className);
     // TODO Auto-generated method stub
+    for (var i : node.defs) {
+      // TODO: check
+      i.accept(this);
+    }
     this.curScope = this.curScope.parent;
   }
 
   @Override
   public void visit(ClassCtorDefNode node) {
-    // TODO Auto-generated method stub
+    var funcScope = new FuncScope(new TypeNode("void", false, null), false, this.curScope);
+    this.curScope = funcScope;
+    for (var i : node.body.stmts) {
+      i.accept(this);
+    }
+    this.curScope = this.curScope.parent;
   }
 
   @Override
   public void visit(FuncDefNode node) {
+    node.returnType.accept(this);
     var funcDefNode = this.gScope.getFunc(node.funcName);
-    var funcScope = new FuncScope(funcDefNode.returnType, false, this.gScope);
+    var funcScope = new FuncScope(funcDefNode.returnType, false, this.curScope);
     this.curScope = funcScope;
     node.params.accept(this);
-    for (var i : node.suite.stmts) {
+    for (var i : node.body.stmts) {
       i.accept(this);
     }
     this.curScope = this.curScope.parent;
@@ -105,7 +115,16 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(SingleVarDefNode node) {
     node.type.accept(this);
-    this.curScope.addVar(node);
+    if (node.initExpr != null) {
+      node.initExpr.accept(this);
+    }
+    if (!node.initExpr.type.match(node.type)) {
+      throw new SemanticError("initialization expression has wrong type", node.initExpr.pos);
+    }
+    // TODO: check
+    if (!(this.curScope instanceof ClassScope)) {
+      this.curScope.addVar(node);
+    }
   }
 
   @Override
@@ -170,14 +189,25 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ReturnStmtNode node) {
-    // TODO Auto-generated method stub
     // grammar guarantees that return statements are inside a function
     node.expr.accept(this);
+    var funcScope = this.curScope.getFuncScope();
+    if (funcScope.isLambda) {
+      if (funcScope.hasReturn) {
+        if (!node.expr.type.match(funcScope.returnType)) {
+          throw new SemanticError("inconsistent return type inside lambda function", node.pos);
+        }
+      } else {
+        funcScope.hasReturn = true;
+        funcScope.returnType = new TypeNode(node.expr.type);
+      }
+    }
     var returnType = this.curScope.getReturnType();
     if (!node.expr.type.match(returnType)) {
       throw new SemanticError(
           "wrong return type '" + node.expr.type.typename + "'", node.expr.pos);
     }
+    this.curScope.getFuncScope().hasReturn = true;
   }
 
   @Override
@@ -210,7 +240,12 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(AssignExprNode node) {
-    // TODO Auto-generated method stub
+    node.lhs.accept(this);
+    node.rhs.accept(this);
+    if (!node.rhs.type.match(node.lhs.type)) {
+      throw new SemanticError("type not match in assignment expression", node.pos);
+    }
+    node.type = new TypeNode(node.lhs.type);
   }
 
   @Override
@@ -247,14 +282,54 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(BinaryExprNode node) {
-    // TODO Auto-generated method stub
+    node.lhs.accept(this);
+    node.rhs.accept(this);
+    var op = node.op;
+    var ltype = node.lhs.type;
+    var rtype = node.lhs.type;
+    if (ltype.isNull() || rtype.isNull()) {
+      if (!op.equals("==") && !op.equals("!=")) {
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
+      }
+      if (!ltype.isClass && !ltype.isArrayType &&
+          !rtype.isClass && !rtype.isArrayType &&
+          !(ltype.isNull() && rtype.isNull())) {
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
+      }
+    } else {
+      if (!ltype.match(node.rhs.type)) {
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
+      }
+    }
+    if (op.equals("==") || op.equals("!=")) {
+      node.type = new TypeNode("bool", false, node.pos);
+    } else if (op.equals("&&") || op.equals("||")) {
+      if (!ltype.isBool()) {
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
+      }
+      node.type = new TypeNode("bool", false, node.pos);
+    } else if (op.equals("<") || op.equals("<=") ||
+        op.equals(">") || op.equals(">=")) {
+      if (!ltype.isString() || !ltype.isInt()) {
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
+      }
+      node.type = new TypeNode("bool", false, node.pos);
+    } else { // arithmetic
+      if (op.equals("+") && ltype.isString()) {
+        node.type = new TypeNode("string", true, node.pos);
+        return;
+      }
+      if (!ltype.isInt()) {
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
+      }
+      node.type = new TypeNode("int", false, node.pos);
+    }
   }
 
   @Override
   public void visit(FuncCallExprNode node) {
-    // TODO Auto-generated method stub
     node.function.accept(this);
-    var params = node.funcDef.params.params;
+    var params = node.function.funcDef.params.params;
     if (params.size() != node.args.size()) {
       throw new SemanticError("argument number does not match", node.pos);
     }
@@ -266,7 +341,7 @@ public class SemanticChecker implements ASTVisitor {
         throw new SemanticError("argument type does not match function definition", arg.pos);
       }
     }
-    node.type = new TypeNode(node.funcDef.returnType);
+    node.type = new TypeNode(node.function.funcDef.returnType);
   }
 
   @Override
@@ -307,6 +382,7 @@ public class SemanticChecker implements ASTVisitor {
         throw new SemanticError("array type has no member function named '" + node.member + "'", node.pos);
       }
       node.funcDef = this.gScope.getFunc(".size");
+      node.type = new TypeNode(node.funcDef.returnType);
       return;
     }
     if (!node.instance.type.isClass) {
@@ -321,12 +397,14 @@ public class SemanticChecker implements ASTVisitor {
         throw new SemanticError("class '" + clsName + "' has no member function named '" + node.member + "'", node.pos);
       }
       node.funcDef = funcDef;
+      node.type = new TypeNode(node.funcDef.returnType);
     } else {
       var varDef = cls.getVar(node.member, false);
       if (varDef == null) {
         throw new SemanticError("class '" + clsName + "' has no member variable named '" + node.member + "'", node.pos);
       }
       node.varDef = varDef;
+      node.type = new TypeNode(node.varDef.type);
     }
   }
 
@@ -361,12 +439,47 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(UnaryExprNode node) {
-    // TODO Auto-generated method stub
+    node.expr.accept(this);
+    var op = node.op;
+    if (op.equals("+") || op.equals("-") || op.equals("~")) {
+      if (!node.expr.type.isInt()) {
+        throw new SemanticError("argument type of 'operator" + op + "' should be int", node.pos);
+      }
+    } else { // op is "!"
+      if (!node.expr.type.isBool()) {
+        throw new SemanticError("argument type of 'operator" + op + "' should be bool", node.pos);
+      }
+    }
+    node.type = new TypeNode(node.expr.type);
   }
 
   @Override
   public void visit(LambdaExprNode node) {
-    // TODO Auto-generated method stub
+    var tmp = this.curScope;
+    var funcScope = new FuncScope(null, true, node.capture ? this.curScope : this.gScope);
+    this.curScope = funcScope;
+    node.params.accept(this);
+    for (var i : node.body.stmts) {
+      i.accept(this);
+    }
+    if (funcScope.hasReturn) {
+      node.type = new TypeNode("void", false, null);
+    } else {
+      node.type = new TypeNode(funcScope.returnType);
+    }
+    this.curScope = tmp;
+
+    if (node.params.params.size() != node.args.size()) {
+      throw new SemanticError("argument number does not match", node.pos);
+    }
+    for (int i = 0; i < node.args.size(); ++i) {
+      var arg = node.args.get(i);
+      arg.accept(this);
+      var param = node.params.params.get(i);
+      if (!arg.type.match(param.type)) {
+        throw new SemanticError("argument type does not match function definition", arg.pos);
+      }
+    }
   }
 
 }

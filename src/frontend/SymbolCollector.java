@@ -3,6 +3,7 @@ package frontend;
 import ast.*;
 import ast.expr.*;
 import ast.stmt.*;
+import utils.error.SemanticError;
 import utils.scope.ClassScope;
 import utils.scope.GlobalScope;
 
@@ -19,7 +20,8 @@ public class SymbolCollector implements ASTVisitor {
   @Override
   public void visit(ProgramNode node) {
     for (var i : node.defs) {
-      if (i instanceof VarDefNode) continue;
+      if (i instanceof VarDefNode)
+        continue;
       i.accept(this);
     }
   }
@@ -58,6 +60,10 @@ public class SymbolCollector implements ASTVisitor {
 
   @Override
   public void visit(SingleVarDefNode node) {
+    if (node.initExpr != null) {
+      throw new SemanticError("initialization expression is not allowed for member variable definition",
+          node.initExpr.pos);
+    }
     this.clsScope.addVar(node);
   }
 

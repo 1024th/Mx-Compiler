@@ -44,8 +44,16 @@ public class TypeNode extends ASTNode {
     return this.typename.equals("int");
   }
 
+  public boolean isString() {
+    return this.typename.equals("string");
+  }
+
   public boolean isVoid() {
     return this.typename.equals("void");
+  }
+
+  public boolean isNull() {
+    return this.typename.equals("null");
   }
 
   public boolean match(TypeNode other) {

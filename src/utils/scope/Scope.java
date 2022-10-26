@@ -55,6 +55,16 @@ public class Scope {
     return null;
   }
 
+  // recursively find the ClassScope from this scope and its ancestors,
+  // return null if no ClassScope is found.
+  public FuncScope getFuncScope() {
+    if (this instanceof FuncScope)
+      return (FuncScope) this;
+    if (this.parent != null)
+      return this.parent.getFuncScope();
+    return null;
+  }
+
   // remember to override this function in FuncScope
   public TypeNode getReturnType() {
     return this.parent.getReturnType();
