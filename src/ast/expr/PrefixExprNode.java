@@ -8,7 +8,7 @@ public class PrefixExprNode extends ExprNode {
   public String op;
 
   public PrefixExprNode(ExprNode expr, String op, Position pos) {
-    super(expr.type, false, pos);
+    super(expr.type, true, pos);
     this.expr = expr;
     this.op = op;
   }

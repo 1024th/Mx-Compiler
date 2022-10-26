@@ -37,15 +37,15 @@ public class TypeNode extends ASTNode {
   }
 
   public boolean isBool() {
-    return this.typename.equals("bool");
+    return this.typename.equals("bool") && this.isArrayType == false;
   }
 
   public boolean isInt() {
-    return this.typename.equals("int");
+    return this.typename.equals("int") && this.isArrayType == false;
   }
 
   public boolean isString() {
-    return this.typename.equals("string");
+    return this.typename.equals("string") && this.isArrayType == false;
   }
 
   public boolean isVoid() {
@@ -60,6 +60,13 @@ public class TypeNode extends ASTNode {
     return (this.typename.equals(other.typename) &&
         this.isArrayType == other.isArrayType &&
         this.dimension == other.dimension);
+  }
+
+  public boolean canAssignTo(TypeNode other) {
+    if (this.isNull()) {
+      return other.isClass || other.isArrayType;
+    }
+    return this.match(other);
   }
 
   @Override

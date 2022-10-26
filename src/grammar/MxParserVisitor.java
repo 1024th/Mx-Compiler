@@ -151,6 +151,12 @@ public interface MxParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArgumentList(MxParser.ArgumentListContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MxParser#newExprDim}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNewExprDim(MxParser.NewExprDimContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code newExpr}
 	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree

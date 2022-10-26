@@ -212,25 +212,28 @@ public class SemanticChecker implements ASTVisitor {
     var funcScope = this.curScope.getFuncScope();
     if (funcScope.isLambda) {
       if (funcScope.hasReturn) {
-        if (!type.match(funcScope.returnType)) {
+        if (!type.canAssignTo(funcScope.returnType)) {
           throw new SemanticError("inconsistent return type inside lambda function", node.pos);
         }
       } else {
         funcScope.hasReturn = true;
         funcScope.returnType = new TypeNode(type);
       }
+    } else {
+      var returnType = this.curScope.getReturnType();
+      if (!type.canAssignTo(returnType)) {
+        throw new SemanticError(
+            "wrong return type '" + type.typename + "'", node.pos);
+      }
+      this.curScope.getFuncScope().hasReturn = true;
     }
-    var returnType = this.curScope.getReturnType();
-    if (!type.match(returnType)) {
-      throw new SemanticError(
-          "wrong return type '" + type.typename + "'", node.pos);
-    }
-    this.curScope.getFuncScope().hasReturn = true;
   }
 
   @Override
   public void visit(ExprStmtNode node) {
-    node.expr.accept(this);
+    if (node.expr != null) {
+      node.expr.accept(this);
+    }
   }
 
   @Override
@@ -260,12 +263,7 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(AssignExprNode node) {
     node.lhs.accept(this);
     node.rhs.accept(this);
-    if (node.rhs.type.isNull()) {
-      if (!node.lhs.type.isClass && !node.lhs.type.isArrayType) {
-        throw new SemanticError("cannot assign 'null' to '" +
-            node.lhs.type.typename + "' type", node.pos);
-      }
-    } else if (!node.rhs.type.match(node.lhs.type)) {
+    if (!node.rhs.type.canAssignTo(node.lhs.type)) {
       throw new SemanticError("cannot assign '" +
           node.rhs.type.typename + "' type to '" +
           node.lhs.type.typename + "' type", node.pos);
@@ -279,8 +277,8 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(AtomExprNode node) {
     // TODO Auto-generated method stub
+    var cls = this.curScope.getClassScope();
     if (node.type.typename != null && node.type.typename.equals("this")) {
-      var cls = this.curScope.getClassScope();
       if (cls == null) {
         throw new SemanticError("invalid use of 'this' in non-member function", node.pos);
       }
@@ -292,7 +290,13 @@ public class SemanticChecker implements ASTVisitor {
       // Note: variable and function can have the same name!
       // Note2: member variables and member functions are not atomExprs
       if (node.isFunc) {
-        var funcDef = this.gScope.getFunc(node.text);
+        FuncDefNode funcDef = null;
+        if (cls != null) {
+          funcDef = cls.getFunc(node.text);
+        }
+        if (funcDef == null) {
+          funcDef = this.gScope.getFunc(node.text);
+        }
         if (funcDef == null) {
           throw new SemanticError("use of undeclared function '" + node.text + "'", node.pos);
         }
@@ -315,23 +319,17 @@ public class SemanticChecker implements ASTVisitor {
     var op = node.op;
     var ltype = node.lhs.type;
     var rtype = node.lhs.type;
-    if (ltype.isNull() || rtype.isNull()) {
-      if (!op.equals("==") && !op.equals("!=")) {
-        throw new SemanticError("invalid operand types to binary expression", node.pos);
-      }
-      if (!ltype.isClass && !ltype.isArrayType &&
-          !rtype.isClass && !rtype.isArrayType &&
-          !(ltype.isNull() && rtype.isNull())) {
-        throw new SemanticError("invalid operand types to binary expression", node.pos);
-      }
-    } else {
-      if (!ltype.match(node.rhs.type)) {
-        throw new SemanticError("invalid operand types to binary expression", node.pos);
-      }
-    }
     if (op.equals("==") || op.equals("!=")) {
+      if (!ltype.canAssignTo(rtype) && !rtype.canAssignTo(ltype))
+        throw new SemanticError("invalid operand types to binary expression", node.pos);
       node.type = new TypeNode("bool", false, node.pos);
-    } else if (op.equals("&&") || op.equals("||")) {
+      return;
+    }
+
+    if (!ltype.match(node.rhs.type)) {
+      throw new SemanticError("invalid operand types to binary expression", node.pos);
+    }
+    if (op.equals("&&") || op.equals("||")) {
       if (!ltype.isBool()) {
         throw new SemanticError("invalid operand types to binary expression", node.pos);
       }
@@ -365,7 +363,7 @@ public class SemanticChecker implements ASTVisitor {
       var arg = node.args.get(i);
       arg.accept(this);
       var param = params.get(i);
-      if (!arg.type.match(param.type)) {
+      if (!arg.type.canAssignTo(param.type)) {
         throw new SemanticError("argument type does not match function definition", arg.pos);
       }
     }
@@ -391,6 +389,9 @@ public class SemanticChecker implements ASTVisitor {
       throw new SemanticError("subscript operator on non-array type", node.array.pos);
     }
     node.index.accept(this);
+    if (!node.index.type.isInt()) {
+      throw new SemanticError("index must be 'int'", node.index.pos);
+    }
     node.type = new TypeNode(node.array.type);
     node.type.dimension--;
     if (node.type.dimension == 0) {
@@ -454,6 +455,9 @@ public class SemanticChecker implements ASTVisitor {
     if (!node.expr.type.isInt()) {
       throw new SemanticError("increment and decrement only accepts int type", node.expr.pos);
     }
+    if (!node.expr.isLeftVal) {
+      throw new SemanticError("lvalue required as increment operand", node.expr.pos);
+    }
     node.type = new TypeNode(node.expr.type);
   }
 
@@ -508,7 +512,7 @@ public class SemanticChecker implements ASTVisitor {
       var arg = node.args.get(i);
       arg.accept(this);
       var param = node.params.params.get(i);
-      if (!arg.type.match(param.type)) {
+      if (!arg.type.canAssignTo(param.type)) {
         throw new SemanticError("argument type does not match function definition", arg.pos);
       }
     }

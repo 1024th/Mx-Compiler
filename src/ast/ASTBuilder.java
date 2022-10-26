@@ -159,6 +159,8 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
       return visit(ctx.returnStmt());
     } else if (ctx.exprStmt() != null) {
       return visit(ctx.exprStmt());
+    } else if (ctx.Semi() != null) {
+      return new ExprStmtNode(null, new Position(ctx));
     }
     throw new ASTBuildError("unknown type of statement", new Position(ctx));
   }
@@ -240,13 +242,29 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitNewExpr(NewExprContext ctx) {
     TypeNode type = new TypeNode(ctx.nonArrayType());
-    if (ctx.LBracket().size() > 0) {
+    if (ctx.newExprDim().size() > 0) {
       type.isArrayType = true;
-      type.dimension = ctx.LBracket().size();
+      type.dimension = ctx.newExprDim().size();
     }
     var ret = new NewExprNode(type, new Position(ctx));
-    for (var i : ctx.expr()) {
-      ret.sizeExprs.add((ExprNode) visit(i));
+
+    boolean needSize = true, forceEmpty = false;
+    for (var i : ctx.newExprDim()) {
+      if (needSize) {
+        if (i.expr() == null) {
+          throw new SemanticError("array size must be specified in new expression", new Position(i));
+        }
+        needSize = false;
+      }
+      if (forceEmpty && i.expr() != null) {
+        throw new SemanticError("size of multidimensional array must be specified from left to right",
+            new Position(i));
+      }
+      if (i.expr() == null) {
+        forceEmpty = true;
+      } else {
+        ret.sizeExprs.add((ExprNode) visit(i.expr()));
+      }
     }
     return ret;
   }

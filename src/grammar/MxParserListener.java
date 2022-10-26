@@ -240,6 +240,16 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitArgumentList(MxParser.ArgumentListContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MxParser#newExprDim}.
+	 * @param ctx the parse tree
+	 */
+	void enterNewExprDim(MxParser.NewExprDimContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MxParser#newExprDim}.
+	 * @param ctx the parse tree
+	 */
+	void exitNewExprDim(MxParser.NewExprDimContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code newExpr}
 	 * labeled alternative in {@link MxParser#expr}.
 	 * @param ctx the parse tree

@@ -53,10 +53,11 @@ exprStmt: expr Semi;
 argumentList: expr (',' expr)*;
 
 // $antlr-format reflowComments false
+newExprDim: '[' expr? ']';
 expr:
 	atom  #atomExpr
 	| '(' expr ')'  #parenExpr
-	| New nonArrayType ('(' ')' | (('[' expr ']')+ ('[' ']')*)?)  #newExpr
+	| New nonArrayType ('(' ')' | newExprDim*)  #newExpr
 	// Precedence 1, Left-to-right
 	// ++ -- postfix increment and decrement
 	// () function call
