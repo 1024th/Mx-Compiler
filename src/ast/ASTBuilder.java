@@ -286,7 +286,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
 
   @Override
   public ASTNode visitLambdaExpr(LambdaExprContext ctx) {
-    ParamListNode params = null;
+    ParamListNode params = new ParamListNode(new Position(ctx));
     if (ctx.parameterList() != null) {
       params = (ParamListNode) visit(ctx.parameterList());
     }

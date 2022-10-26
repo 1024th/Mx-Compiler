@@ -320,7 +320,7 @@ public class SemanticChecker implements ASTVisitor {
     var ltype = node.lhs.type;
     var rtype = node.lhs.type;
     if (op.equals("==") || op.equals("!=")) {
-      if (!ltype.canAssignTo(rtype) && !rtype.canAssignTo(ltype))
+      if (!ltype.match(rtype) && !ltype.canAssignTo(rtype) && !rtype.canAssignTo(ltype))
         throw new SemanticError("invalid operand types to binary expression", node.pos);
       node.type = new TypeNode("bool", false, node.pos);
       return;
@@ -499,9 +499,9 @@ public class SemanticChecker implements ASTVisitor {
       i.accept(this);
     }
     if (funcScope.hasReturn) {
-      node.type = new TypeNode("void", false, null);
-    } else {
       node.type = new TypeNode(funcScope.returnType);
+    } else {
+      node.type = new TypeNode("void", false, null);
     }
     this.curScope = tmp;
 
