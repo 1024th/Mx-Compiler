@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import ast.ASTBuilder;
 import ast.ProgramNode;
+import frontend.SemanticChecker;
 import frontend.SymbolCollector;
 import grammar.MxLexer;
 import grammar.MxParser;
@@ -29,7 +30,9 @@ public class Compiler {
     GlobalScope gScope = new GlobalScope();
     SymbolCollector symbolCollector = new SymbolCollector(gScope);
     symbolCollector.visit(rootNode);
-    gScope.print();
+    // gScope.print();
+    SemanticChecker semanticChecker = new SemanticChecker(gScope);
+    semanticChecker.visit(rootNode);
     // System.out.println(root.toStringTree());
   }
 }

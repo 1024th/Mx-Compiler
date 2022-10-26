@@ -25,7 +25,7 @@ public class TypeNode extends ASTNode {
   }
 
   public TypeNode(NonArrayTypeContext ctx) {
-    this(ctx.getText(), ctx.Identifier() != null, new Position(ctx));
+    this(ctx.getText(), ctx.Identifier() != null || ctx.getText().equals("string"), new Position(ctx));
   }
 
   public TypeNode(String typename, boolean isClass, int dimension, Position pos) {

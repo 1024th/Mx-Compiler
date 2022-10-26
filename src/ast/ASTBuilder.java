@@ -32,7 +32,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   public ASTNode visitFuncDef(FuncDefContext ctx) {
     var returnType = (TypeNode) visit(ctx.returnType());
     var suite = (SuiteNode) visit(ctx.suite());
-    ParamListNode params = null;
+    ParamListNode params = new ParamListNode(new Position(ctx));
     if (ctx.parameterList() != null) {
       params = (ParamListNode) visit(ctx.parameterList());
     }
@@ -76,9 +76,6 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
       }
       ret.defs.add(node);
     }
-    for (var i : ctx.varDef()) {
-      ret.defs.add(visit(i));
-    }
     for (var i : ctx.funcDef()) {
       ret.defs.add(visit(i));
     }
@@ -114,7 +111,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   public ASTNode visitType(TypeContext ctx) {
     int dim = ctx.LBracket().size();
     var baseType = ctx.nonArrayType();
-    boolean isClass = baseType.Identifier() != null;
+    boolean isClass = baseType.Identifier() != null || baseType.getText().equals("string");
     if (dim == 0) {
       return new TypeNode(baseType.getText(), isClass, new Position(ctx));
     }
@@ -243,7 +240,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitNewExpr(NewExprContext ctx) {
     TypeNode type = new TypeNode(ctx.nonArrayType());
-    if (ctx.LBracket().size() >= 0) {
+    if (ctx.LBracket().size() > 0) {
       type.isArrayType = true;
       type.dimension = ctx.LBracket().size();
     }
@@ -294,19 +291,22 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
     // TODO: consider how to store the type
     // set typename to null if the type cannot be immediately indicated
     String typename = null;
+    boolean isClass = false;
     var atom = ctx.atom();
     if (atom.IntegerLiteral() != null) {
       typename = "int";
     } else if (atom.StringLiteral() != null) {
       typename = "string";
+      isClass = true;
     } else if (atom.True() != null || atom.False() != null) {
       typename = "bool";
     } else if (atom.Null() != null) {
       typename = "null";
     } else if (atom.This() != null) {
       typename = "this";
+      isClass = true;
     }
-    TypeNode type = new TypeNode(typename, false, new Position(ctx));
+    TypeNode type = new TypeNode(typename, isClass, new Position(ctx));
     return new AtomExprNode(ctx.getText(), type, atom.Identifier() != null, new Position(ctx));
   }
 

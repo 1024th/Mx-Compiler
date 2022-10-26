@@ -130,12 +130,12 @@ public interface MxParserListener extends ParseTreeListener {
 	 */
 	void exitPrimitiveType(MxParser.PrimitiveTypeContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MxParser#body}.
+	 * Enter a parse tree produced by {@link MxParser#suite}.
 	 * @param ctx the parse tree
 	 */
 	void enterSuite(MxParser.SuiteContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MxParser#body}.
+	 * Exit a parse tree produced by {@link MxParser#suite}.
 	 * @param ctx the parse tree
 	 */
 	void exitSuite(MxParser.SuiteContext ctx);

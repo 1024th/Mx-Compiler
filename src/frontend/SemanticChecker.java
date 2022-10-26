@@ -36,6 +36,7 @@ public class SemanticChecker implements ASTVisitor {
     stringCls.addFunc(newBuiltinFunc("substring", stringType, intType, intType));
     stringCls.addFunc(newBuiltinFunc("parseInt", intType));
     stringCls.addFunc(newBuiltinFunc("ord", intType, intType));
+    this.gScope.addClass(stringCls);
 
     // represent the 'size' function of array type
     addBuiltinFunc(".size", intType);
@@ -95,12 +96,14 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(FuncDefNode node) {
     node.returnType.accept(this);
-    var funcDefNode = this.gScope.getFunc(node.funcName);
-    var funcScope = new FuncScope(funcDefNode.returnType, false, this.curScope);
+    var funcScope = new FuncScope(node.returnType, false, this.curScope);
     this.curScope = funcScope;
     node.params.accept(this);
     for (var i : node.body.stmts) {
       i.accept(this);
+    }
+    if (!node.funcName.equals("main") && !node.returnType.isVoid() && !funcScope.hasReturn) {
+      throw new SemanticError("non-void function should have return value", node.pos);
     }
     this.curScope = this.curScope.parent;
   }
@@ -117,9 +120,13 @@ public class SemanticChecker implements ASTVisitor {
     node.type.accept(this);
     if (node.initExpr != null) {
       node.initExpr.accept(this);
-    }
-    if (!node.initExpr.type.match(node.type)) {
-      throw new SemanticError("initialization expression has wrong type", node.initExpr.pos);
+      if (!node.initExpr.type.match(node.type) &&
+          (!node.type.isClass && !node.type.isArrayType &&
+              !node.initExpr.type.isNull())) {
+        throw new SemanticError(
+            "initialize '" + node.type.typename + "' type with '" + node.initExpr.type.typename + "' type",
+            node.initExpr.pos);
+      }
     }
     // TODO: check
     if (!(this.curScope instanceof ClassScope)) {
@@ -137,9 +144,11 @@ public class SemanticChecker implements ASTVisitor {
     if (node.initExpr != null) {
       node.initExpr.accept(this);
     }
-    node.condition.accept(this);
-    if (!node.condition.type.isBool()) {
-      throw new SemanticError("the expression type should be bool", node.condition.pos);
+    if (node.condition != null) {
+      node.condition.accept(this);
+      if (!node.condition.type.isBool()) {
+        throw new SemanticError("the expression type should be bool", node.condition.pos);
+      }
     }
     if (node.increase != null) {
       node.increase.accept(this);
@@ -159,6 +168,11 @@ public class SemanticChecker implements ASTVisitor {
     this.curScope = scope;
     node.thenStmt.accept(this);
     this.curScope = this.curScope.parent;
+    if (node.elseStmt != null) {
+      this.curScope = new Scope(this.curScope, false);
+      node.elseStmt.accept(this);
+      this.curScope = this.curScope.parent;
+    }
   }
 
   @Override
@@ -190,22 +204,26 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(ReturnStmtNode node) {
     // grammar guarantees that return statements are inside a function
-    node.expr.accept(this);
+    TypeNode type = new TypeNode("void", false, null);
+    if (node.expr != null) {
+      node.expr.accept(this);
+      type = node.expr.type;
+    }
     var funcScope = this.curScope.getFuncScope();
     if (funcScope.isLambda) {
       if (funcScope.hasReturn) {
-        if (!node.expr.type.match(funcScope.returnType)) {
+        if (!type.match(funcScope.returnType)) {
           throw new SemanticError("inconsistent return type inside lambda function", node.pos);
         }
       } else {
         funcScope.hasReturn = true;
-        funcScope.returnType = new TypeNode(node.expr.type);
+        funcScope.returnType = new TypeNode(type);
       }
     }
     var returnType = this.curScope.getReturnType();
-    if (!node.expr.type.match(returnType)) {
+    if (!type.match(returnType)) {
       throw new SemanticError(
-          "wrong return type '" + node.expr.type.typename + "'", node.expr.pos);
+          "wrong return type '" + type.typename + "'", node.pos);
     }
     this.curScope.getFuncScope().hasReturn = true;
   }
@@ -242,8 +260,18 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(AssignExprNode node) {
     node.lhs.accept(this);
     node.rhs.accept(this);
-    if (!node.rhs.type.match(node.lhs.type)) {
-      throw new SemanticError("type not match in assignment expression", node.pos);
+    if (node.rhs.type.isNull()) {
+      if (!node.lhs.type.isClass && !node.lhs.type.isArrayType) {
+        throw new SemanticError("cannot assign 'null' to '" +
+            node.lhs.type.typename + "' type", node.pos);
+      }
+    } else if (!node.rhs.type.match(node.lhs.type)) {
+      throw new SemanticError("cannot assign '" +
+          node.rhs.type.typename + "' type to '" +
+          node.lhs.type.typename + "' type", node.pos);
+    }
+    if (!node.lhs.isLeftVal) {
+      throw new SemanticError("expression is not assignable", node.lhs.pos);
     }
     node.type = new TypeNode(node.lhs.type);
   }
@@ -251,7 +279,7 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(AtomExprNode node) {
     // TODO Auto-generated method stub
-    if (node.type.typename.equals("this")) {
+    if (node.type.typename != null && node.type.typename.equals("this")) {
       var cls = this.curScope.getClassScope();
       if (cls == null) {
         throw new SemanticError("invalid use of 'this' in non-member function", node.pos);
@@ -310,7 +338,7 @@ public class SemanticChecker implements ASTVisitor {
       node.type = new TypeNode("bool", false, node.pos);
     } else if (op.equals("<") || op.equals("<=") ||
         op.equals(">") || op.equals(">=")) {
-      if (!ltype.isString() || !ltype.isInt()) {
+      if (!ltype.isString() && !ltype.isInt()) {
         throw new SemanticError("invalid operand types to binary expression", node.pos);
       }
       node.type = new TypeNode("bool", false, node.pos);
@@ -387,7 +415,8 @@ public class SemanticChecker implements ASTVisitor {
     }
     if (!node.instance.type.isClass) {
       throw new SemanticError(
-          "cannot request for member '" + node.member + "' in non-class type '" + node.type.typename + "'", node.pos);
+          "cannot request for member '" + node.member + "' in non-class type '" + node.instance.type.typename + "'",
+          node.pos);
     }
     var clsName = node.instance.type.typename;
     var cls = this.gScope.getClass(clsName);
@@ -433,6 +462,9 @@ public class SemanticChecker implements ASTVisitor {
     node.expr.accept(this);
     if (!node.expr.type.isInt()) {
       throw new SemanticError("increment and decrement only accepts int type", node.expr.pos);
+    }
+    if (!node.expr.isLeftVal) {
+      throw new SemanticError("lvalue required as increment operand", node.expr.pos);
     }
     node.type = new TypeNode(node.expr.type);
   }

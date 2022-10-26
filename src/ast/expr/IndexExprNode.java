@@ -7,7 +7,7 @@ public class IndexExprNode extends ExprNode {
   public ExprNode array, index;
 
   public IndexExprNode(ExprNode array, ExprNode index, Position pos) {
-    super(null, array.isLeftVal, pos);
+    super(null, true, pos);
     this.array = array;
     this.index = index;
   }

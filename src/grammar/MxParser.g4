@@ -56,7 +56,7 @@ argumentList: expr (',' expr)*;
 expr:
 	atom  #atomExpr
 	| '(' expr ')'  #parenExpr
-	| New nonArrayType (('[' expr ']')+ ('[' ']')*)?  #newExpr
+	| New nonArrayType ('(' ')' | (('[' expr ']')+ ('[' ']')*)?)  #newExpr
 	// Precedence 1, Left-to-right
 	// ++ -- postfix increment and decrement
 	// () function call

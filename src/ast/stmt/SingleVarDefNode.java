@@ -12,6 +12,7 @@ public class SingleVarDefNode extends StmtNode {
   
   public SingleVarDefNode(TypeNode type, String name, ExprNode initExpr, Position pos) {
     super(pos);
+    this.type = type;
     this.name = name;
     this.initExpr = initExpr;
   }

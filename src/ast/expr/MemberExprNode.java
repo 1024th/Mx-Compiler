@@ -10,7 +10,7 @@ public class MemberExprNode extends ExprNode {
   public SingleVarDefNode varDef;
 
   public MemberExprNode(ExprNode instance, String member, Position pos) {
-    super(null, instance.isLeftVal, pos);
+    super(null, true, pos);
     this.instance = instance;
     this.member = member;
   }
