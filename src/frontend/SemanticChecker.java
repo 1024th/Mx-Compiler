@@ -36,14 +36,14 @@ public class SemanticChecker implements ASTVisitor {
     stringCls.addFunc(newBuiltinFunc("substring", stringType, intType, intType));
     stringCls.addFunc(newBuiltinFunc("parseInt", intType));
     stringCls.addFunc(newBuiltinFunc("ord", intType, intType));
-    this.gScope.addClass(stringCls);
+    this.gScope.addClassScope(stringCls);
 
     // represent the 'size' function of array type
     addBuiltinFunc(".size", intType);
   }
 
   private void addBuiltinFunc(String funcName, TypeNode returnType, TypeNode... paramTypes) {
-    this.gScope.funcs.put(funcName, newBuiltinFunc(funcName, returnType, paramTypes));
+    this.gScope.funcDefs.put(funcName, newBuiltinFunc(funcName, returnType, paramTypes));
   }
 
   private FuncDefNode newBuiltinFunc(String funcName, TypeNode returnType, TypeNode... paramTypes) {
@@ -56,7 +56,7 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ProgramNode node) {
-    var mainFunc = this.gScope.getFunc("main");
+    var mainFunc = this.gScope.getFuncDef("main");
     if (mainFunc == null) {
       throw new SemanticError("no main funciton", node.pos);
     }
@@ -74,10 +74,8 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ClassDefNode node) {
-    this.curScope = this.gScope.getClass(node.className);
-    // TODO Auto-generated method stub
+    this.curScope = this.gScope.getClassScope(node.className);
     for (var i : node.defs) {
-      // TODO: check
       i.accept(this);
     }
     this.curScope = this.curScope.parent;
@@ -85,8 +83,8 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ClassCtorDefNode node) {
-    var funcScope = new FuncScope(new TypeNode("void", false, null), false, this.curScope);
-    this.curScope = funcScope;
+    node.scope = new FuncScope(new TypeNode("void", false, null), false, this.curScope);
+    this.curScope = node.scope;
     for (var i : node.body.stmts) {
       i.accept(this);
     }
@@ -96,13 +94,12 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(FuncDefNode node) {
     node.returnType.accept(this);
-    var funcScope = new FuncScope(node.returnType, false, this.curScope);
-    this.curScope = funcScope;
+    this.curScope = node.scope = new FuncScope(node.returnType, false, this.curScope);
     node.params.accept(this);
     for (var i : node.body.stmts) {
       i.accept(this);
     }
-    if (!node.funcName.equals("main") && !node.returnType.isVoid() && !funcScope.hasReturn) {
+    if (!node.funcName.equals("main") && !node.returnType.isVoid() && !node.scope.hasReturn) {
       throw new SemanticError("non-void function should have return value", node.pos);
     }
     this.curScope = this.curScope.parent;
@@ -136,8 +133,7 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ForStmtNode node) {
-    var scope = new Scope(curScope, true);
-    this.curScope = scope;
+    this.curScope = node.scope = new Scope(curScope, true);
     if (node.initVar != null) {
       node.initVar.accept(this);
     }
@@ -164,12 +160,11 @@ public class SemanticChecker implements ASTVisitor {
       throw new SemanticError("the expression type should be bool", node.condition.pos);
     }
     // statement inside if is in a new scope, even if it's not wrapped in {}
-    var scope = new Scope(this.curScope, false);
-    this.curScope = scope;
+    this.curScope = node.thenScope = new Scope(this.curScope, false);
     node.thenStmt.accept(this);
     this.curScope = this.curScope.parent;
     if (node.elseStmt != null) {
-      this.curScope = new Scope(this.curScope, false);
+      this.curScope = node.elseScope = new Scope(this.curScope, false);
       node.elseStmt.accept(this);
       this.curScope = this.curScope.parent;
     }
@@ -177,8 +172,7 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(WhileStmtNode node) {
-    var scope = new Scope(curScope, true);
-    this.curScope = scope;
+    this.curScope = node.scope = new Scope(curScope, true);
     node.condition.accept(this);
     if (!node.condition.type.isBool()) {
       throw new SemanticError("the expression type should be bool", node.condition.pos);
@@ -240,8 +234,7 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(SuiteNode node) {
     // loop scopes are create in their own visit function,
     // so only non-loop scopes are created here.
-    var scope = new Scope(curScope, false);
-    this.curScope = scope;
+    this.curScope = node.scope = new Scope(curScope, false);
     for (var i : node.stmts) {
       i.accept(this);
     }
@@ -252,7 +245,7 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(TypeNode node) {
     // check if a class type is defined
     if (node.isClass) {
-      var cls = this.gScope.getClass(node.typename);
+      var cls = this.gScope.getClassScope(node.typename);
       if (cls == null) {
         throw new SemanticError("unknown type name '" + node.typename + "'", node.pos);
       }
@@ -276,7 +269,6 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(AtomExprNode node) {
-    // TODO Auto-generated method stub
     var cls = this.curScope.getClassScope();
     if (node.type.typename != null && node.type.typename.equals("this")) {
       if (cls == null) {
@@ -295,7 +287,7 @@ public class SemanticChecker implements ASTVisitor {
           funcDef = cls.getFunc(node.text);
         }
         if (funcDef == null) {
-          funcDef = this.gScope.getFunc(node.text);
+          funcDef = this.gScope.getFuncDef(node.text);
         }
         if (funcDef == null) {
           throw new SemanticError("use of undeclared function '" + node.text + "'", node.pos);
@@ -410,7 +402,7 @@ public class SemanticChecker implements ASTVisitor {
       if (!node.member.equals("size")) {
         throw new SemanticError("array type has no member function named '" + node.member + "'", node.pos);
       }
-      node.funcDef = this.gScope.getFunc(".size");
+      node.funcDef = this.gScope.getFuncDef(".size");
       node.type = new TypeNode(node.funcDef.returnType);
       return;
     }
@@ -420,7 +412,7 @@ public class SemanticChecker implements ASTVisitor {
           node.pos);
     }
     var clsName = node.instance.type.typename;
-    var cls = this.gScope.getClass(clsName);
+    var cls = this.gScope.getClassScope(clsName);
     if (node.isFunc) {
       var funcDef = cls.getFunc(node.member);
       if (funcDef == null) {
@@ -492,14 +484,14 @@ public class SemanticChecker implements ASTVisitor {
   @Override
   public void visit(LambdaExprNode node) {
     var tmp = this.curScope;
-    var funcScope = new FuncScope(null, true, node.capture ? this.curScope : this.gScope);
-    this.curScope = funcScope;
+    node.scope = new FuncScope(null, true, node.capture ? this.curScope : this.gScope);
+    this.curScope = node.scope;
     node.params.accept(this);
     for (var i : node.body.stmts) {
       i.accept(this);
     }
-    if (funcScope.hasReturn) {
-      node.type = new TypeNode(funcScope.returnType);
+    if (node.scope.hasReturn) {
+      node.type = new TypeNode(node.scope.returnType);
     } else {
       node.type = new TypeNode("void", false, null);
     }

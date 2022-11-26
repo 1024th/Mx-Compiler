@@ -55,8 +55,8 @@ public class Scope {
     return null;
   }
 
-  // recursively find the ClassScope from this scope and its ancestors,
-  // return null if no ClassScope is found.
+  // recursively find the FuncScope from this scope and its ancestors,
+  // return null if no FuncScope is found.
   public FuncScope getFuncScope() {
     if (this instanceof FuncScope)
       return (FuncScope) this;

@@ -3,11 +3,11 @@ package ir.type;
 import java.util.ArrayList;
 
 public class StructType extends BaseType {
-  public String className;
+  public String name;
   public ArrayList<BaseType> typeList = new ArrayList<>();
 
-  public StructType(String className) {
-    this.className = className;
+  public StructType(String name) {
+    this.name = name;
   }
 
   @Override
@@ -20,6 +20,6 @@ public class StructType extends BaseType {
 
   @Override
   public String toString() {
-    return "%class." + this.className;
+    return "%class." + this.name;
   }
 }

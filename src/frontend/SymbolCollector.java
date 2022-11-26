@@ -29,7 +29,7 @@ public class SymbolCollector implements ASTVisitor {
   @Override
   public void visit(ClassDefNode node) {
     ClassScope cls = new ClassScope(node.className, gScope, node.pos);
-    gScope.addClass(cls);
+    gScope.addClassScope(cls);
     this.clsScope = cls;
     for (var i : node.defs) {
       i.accept(this);
@@ -47,7 +47,7 @@ public class SymbolCollector implements ASTVisitor {
     if (this.clsScope != null) {
       this.clsScope.addFunc(node);
     } else {
-      this.gScope.addFunc(node);
+      this.gScope.addFuncDef(node);
     }
   }
 

@@ -1,5 +1,6 @@
-package ir;
+package ir.constant;
 
+import ir.User;
 import ir.type.BaseType;
 
 // A constant is a value that is immutable at runtime.

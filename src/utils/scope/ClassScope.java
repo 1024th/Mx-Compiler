@@ -1,10 +1,12 @@
 package utils.scope;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
 import ast.ClassCtorDefNode;
 import ast.FuncDefNode;
+import ast.stmt.SingleVarDefNode;
 import utils.Position;
 import utils.error.SemanticError;
 
@@ -13,12 +15,24 @@ public class ClassScope extends Scope {
   public Position pos;
   public HashMap<String, FuncDefNode> funcs = new HashMap<>();
   public ClassCtorDefNode ctor;
+  // for IR getelementptr
+  public HashMap<String, Integer> memberVarIndex = new HashMap<>();
 
   public ClassScope(String className, GlobalScope parent, Position pos) { // Mx* does not support nested class
                                                                           // definition
     super(parent, false);
     this.className = className;
     this.pos = pos;
+  }
+
+  @Override
+  public void addVar(SingleVarDefNode v) {
+    super.addVar(v);
+    memberVarIndex.put(v.name, memberVarIndex.size());
+  }
+
+  public int getVarIndex(String name) {
+    return memberVarIndex.get(name);
   }
 
   public void addFunc(FuncDefNode func) {
