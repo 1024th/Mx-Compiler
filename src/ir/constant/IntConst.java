@@ -10,7 +10,7 @@ public class IntConst extends Constant {
     this.val = val;
   }
 
-  public String toString() {
-    return "%s %d".formatted(this.type, this.val);
+  public String name() {
+    return "%d".formatted(this.val);
   }
 }

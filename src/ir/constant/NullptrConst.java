@@ -8,7 +8,7 @@ public class NullptrConst extends Constant {
     super(new PointerType(new IntType(32)), null);
   }
 
-  public String toString() {
+  public String name() {
     return "null";
   }
 }

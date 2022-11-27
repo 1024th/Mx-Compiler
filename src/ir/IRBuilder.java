@@ -143,7 +143,9 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ReturnStmtNode node) {
-    // TODO Auto-generated method stub
+    node.expr.accept(this);
+    var val = getValue(node.expr);
+    newStore(val, curFunc.retValPtr);
   }
 
   @Override

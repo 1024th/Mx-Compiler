@@ -11,7 +11,7 @@ public class StringConst extends Constant {
     this.val = val + "\0";
   }
 
-  public String toString() {
+  public String name() {
     return "\"%s\"".formatted(this.escaped());
   }
 
