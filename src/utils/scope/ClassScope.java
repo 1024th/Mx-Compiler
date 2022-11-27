@@ -26,8 +26,8 @@ public class ClassScope extends Scope {
   }
 
   @Override
-  public void addVar(SingleVarDefNode v) {
-    super.addVar(v);
+  public void addVarDef(SingleVarDefNode v) {
+    super.addVarDef(v);
     memberVarIndex.put(v.name, memberVarIndex.size());
   }
 
@@ -62,7 +62,7 @@ public class ClassScope extends Scope {
       logger.info(name);
     });
     logger.info("print ClassScope\nmember variables:");
-    this.vars.forEach((name, var) -> {
+    this.varDefs.forEach((name, var) -> {
       logger.info(name);
     });
   }

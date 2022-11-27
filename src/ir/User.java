@@ -14,4 +14,8 @@ public class User extends Value {
   public void addOperand(Value v) {
     this.operands.add(v);
   }
+
+  public Value getOperand(int i) {
+    return this.operands.get(i);
+  }
 }

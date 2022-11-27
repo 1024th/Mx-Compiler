@@ -20,12 +20,17 @@ public class BrInst extends BaseInst {
   @Override
   public String toString() {
     if (this.operands.size() == 1) {
-      var dest = this.operands.get(0);
+      var dest = this.getOperand(0);
       return "br " + dest.typedName();
     }
-    var cond = this.operands.get(0);
-    var ifTrue = this.operands.get(1);
-    var ifFalse = this.operands.get(2);
+    var cond = this.getOperand(0);
+    var ifTrue = this.getOperand(1);
+    var ifFalse = this.getOperand(2);
     return "br %s, %s, %s".formatted(cond.typedName(), ifTrue.typedName(), ifFalse.typedName());
+  }
+
+  @Override
+  public boolean isTerminator() {
+    return true;
   }
 }

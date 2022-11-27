@@ -13,8 +13,8 @@ public class StoreInst extends BaseInst {
 
   @Override
   public String toString() {
-    var val = this.operands.get(0);
-    var ptr = this.operands.get(1);
+    var val = this.getOperand(0);
+    var ptr = this.getOperand(1);
     return "store %s %s, %s, align %d".formatted(this.type, val.name, ptr.typedName(), val.type.size());
   }
 }

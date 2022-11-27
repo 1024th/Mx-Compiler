@@ -127,7 +127,7 @@ public class SemanticChecker implements ASTVisitor {
     }
     // TODO: check
     if (!(this.curScope instanceof ClassScope)) {
-      this.curScope.addVar(node);
+      this.curScope.addVarDef(node);
     }
   }
 
@@ -294,7 +294,7 @@ public class SemanticChecker implements ASTVisitor {
         }
         node.funcDef = funcDef;
       } else {
-        var varDef = this.curScope.getVar(node.text, true);
+        var varDef = this.curScope.getVarDef(node.text, true);
         if (varDef == null) {
           throw new SemanticError("use of undeclared variable '" + node.text + "'", node.pos);
         }
@@ -371,7 +371,7 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ParamNode node) {
-    this.curScope.addVar(new SingleVarDefNode(node.type, node.name, null, node.pos));
+    this.curScope.addVarDef(new SingleVarDefNode(node.type, node.name, null, node.pos));
   }
 
   @Override
@@ -421,7 +421,7 @@ public class SemanticChecker implements ASTVisitor {
       node.funcDef = funcDef;
       node.type = new TypeNode(node.funcDef.returnType);
     } else {
-      var varDef = cls.getVar(node.member, false);
+      var varDef = cls.getVarDef(node.member, false);
       if (varDef == null) {
         throw new SemanticError("class '" + clsName + "' has no member variable named '" + node.member + "'", node.pos);
       }

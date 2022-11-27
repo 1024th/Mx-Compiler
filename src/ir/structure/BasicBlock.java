@@ -10,8 +10,10 @@ import ir.type.LabelType;
 // branches and switch tables. The type of a BasicBlock is "LabelType" because
 // the basic block represents a label to which a branch can jump.
 public class BasicBlock extends Value {
-  public ArrayList<BaseInst> insts;
+  public ArrayList<BaseInst> insts = new ArrayList<>();
   public Function parent;
+
+  public boolean terminated = false;
 
   public BasicBlock(String name, Function parent) {
     super(new LabelType(), name);
@@ -23,5 +25,7 @@ public class BasicBlock extends Value {
 
   public void addInst(BaseInst inst) {
     insts.add(inst);
+    if (inst.isTerminator())
+      this.terminated = true;
   }
 }

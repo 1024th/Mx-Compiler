@@ -17,7 +17,7 @@ public class CallInst extends BaseInst {
   }
 
   public Function getFunc() {
-    return (Function) this.operands.get(0);
+    return (Function) this.getOperand(0);
   }
 
   @Override

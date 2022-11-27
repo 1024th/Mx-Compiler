@@ -32,8 +32,8 @@ public class GlobalScope extends Scope {
     funcDefs.put(func.funcName, func);
   }
 
-  public void addFunc(Function func) {
-    funcs.put(func.name, func);
+  public void addFunc(String funcName, Function func) {
+    funcs.put(funcName, func);
   }
 
   public Function getFunc(String funcName) {

@@ -19,7 +19,12 @@ public class RetInst extends BaseInst {
     if (this.type instanceof VoidType) {
       return "ret void";
     }
-    var val = this.operands.get(0);
-    return "ret %s".formatted(val);
+    var val = this.getOperand(0);
+    return "ret %s".formatted(val.name());
+  }
+
+  @Override
+  public boolean isTerminator() {
+    return true;
   }
 }

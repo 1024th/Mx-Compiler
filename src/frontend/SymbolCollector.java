@@ -64,7 +64,7 @@ public class SymbolCollector implements ASTVisitor {
       throw new SemanticError("initialization expression is not allowed for member variable definition",
           node.initExpr.pos);
     }
-    this.clsScope.addVar(node);
+    this.clsScope.addVarDef(node);
   }
 
   @Override

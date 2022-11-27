@@ -21,4 +21,8 @@ public abstract class BaseInst extends User {
   }
 
   public abstract String toString();
+
+  public boolean isTerminator() {
+    return false;
+  }
 }

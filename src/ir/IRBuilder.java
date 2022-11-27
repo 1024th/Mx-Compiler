@@ -1,20 +1,27 @@
 package ir;
 
+import java.util.HashMap;
+
 import ast.*;
 import ast.expr.*;
 import ast.stmt.*;
 import ir.constant.GlobalVariable;
+import ir.inst.AllocaInst;
+import ir.inst.*;
+import ir.structure.BasicBlock;
 import ir.structure.Function;
 import ir.structure.Module;
 import ir.type.*;
 import utils.error.IRBuildError;
-import utils.scope.ClassScope;
-import utils.scope.GlobalScope;
+import utils.scope.*;
 
 public class IRBuilder implements ASTVisitor {
   public GlobalScope gScope;
+  private Scope curScope;
+  private Function curFunc;
+  private BasicBlock curBlock;
   public ClassScope clsScope;
-  public Module module;
+  public Module module = new Module();
 
   public IRBuilder(GlobalScope gScope) {
     this.gScope = gScope;
@@ -65,7 +72,32 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(FuncDefNode node) {
     // TODO Auto-generated method stub
-    var func = gScope.getFunc(node.funcName);
+    // TODO member function
+    curFunc = gScope.getFunc(node.funcName);
+    curFunc.entryBlock = new BasicBlock("entry", curFunc);
+    curFunc.exitBlock = new BasicBlock("exit", curFunc);
+    curScope = node.scope;
+    var funcType = curFunc.type();
+    curBlock = curFunc.entryBlock;
+    if (funcType.retType instanceof VoidType) {
+      newRet();
+    } else {
+      curFunc.retValPtr = newAlloca(funcType.retType, "%.retval.addr");
+      newRet(newLoad("%.retval", curFunc.retValPtr, curFunc.exitBlock));
+    }
+    for (int i = 0; i < node.params.params.size(); ++i) {
+      var paramNode = node.params.params.get(i);
+      var type = funcType.paramTypes.get(i);
+      var ptr = newAlloca(type, paramNode.name + ".addr");
+      curScope.addVar(paramNode.name, ptr);
+      var val = new Value(type, paramNode.name);
+      curFunc.addArg(val);
+      newStore(val, ptr);
+    }
+    node.body.accept(this);
+    if (!curBlock.terminated)
+      new BrInst(curFunc.exitBlock, curBlock);
+    curScope = curScope.parent;
   }
 
   @Override
@@ -211,7 +243,8 @@ public class IRBuilder implements ASTVisitor {
         }
         var func = new Function(funcType, "@%s.%s".formatted(node.className, funcDef.funcName));
         module.funcs.add(func);
-        gScope.addFunc(func);
+        // TODO
+        // gScope.addFunc(funcDef, func);
       }
     }
   }
@@ -223,7 +256,7 @@ public class IRBuilder implements ASTVisitor {
     }
     var func = new Function(funcType, "@" + node.funcName);
     module.funcs.add(func);
-    gScope.addFunc(func);
+    gScope.addFunc(node.funcName, func);
   }
 
   private void declareGlobalVar(SingleVarDefNode node) {
@@ -261,5 +294,61 @@ public class IRBuilder implements ASTVisitor {
       return new PointerType(gScope.getClassType(type.typename));
     }
     return getElemType(type.typename);
+  }
+
+  private HashMap<String, Integer> identifiers = new HashMap<>();
+
+  private String rename(String rawName) {
+    var cnt = identifiers.get(rawName);
+    String name;
+    if (cnt == null) {
+      name = rawName;
+      cnt = 1;
+    } else {
+      name = rawName + '.' + cnt;
+      cnt += 1;
+    }
+    identifiers.put(rawName, cnt);
+    return name;
+  }
+
+  private boolean isBool(BaseType type) {
+    return type instanceof IntType && ((IntType) type).bitWidth == 1;
+  }
+
+  private AllocaInst newAlloca(BaseType type, String name) {
+    // bool (i1), alloca i8
+    if (isBool(type))
+      type = new IntType(8);
+    return new AllocaInst(type, rename(name), curFunc.entryBlock);
+  }
+
+  private Value newLoad(String name, Value ptr, BasicBlock parent) {
+    var loadInst = new LoadInst(rename(name), ptr, parent);
+    if (isBool(((PointerType) ptr.type).elemType)) {
+      return newTrunc(loadInst, new IntType(1), rename(name + ".tobool"));
+    }
+    return loadInst;
+  }
+
+  private Value newLoad(String name, Value ptr) {
+    return newLoad(rename(name), ptr, curBlock);
+  }
+
+  private StoreInst newStore(Value val, Value ptr) {
+    return new StoreInst(val, ptr, curBlock);
+  }
+
+  private RetInst newRet(Value val) {
+    return new RetInst(val, curFunc.exitBlock);
+  }
+
+  /** Return void */
+  private RetInst newRet() {
+    return new RetInst(curFunc.exitBlock);
+  }
+
+  private TruncInst newTrunc(Value val, BaseType toType, String name) {
+    return new TruncInst(val, toType, rename(name), curBlock);
   }
 }

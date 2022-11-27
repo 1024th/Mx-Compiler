@@ -27,7 +27,11 @@ public class Value {
     }
   }
 
+  public String name() {
+    return this.name;
+  }
+
   public String typedName() {
-    return this.type + " " + this.name;
+    return this.type + " " + this.name();
   }
 }

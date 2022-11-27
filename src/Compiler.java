@@ -9,30 +9,37 @@ import frontend.SemanticChecker;
 import frontend.SymbolCollector;
 import grammar.MxLexer;
 import grammar.MxParser;
+import ir.IRBuilder;
+import ir.IRPrinter;
 import utils.MxErrorListener;
 import utils.scope.GlobalScope;
 
 public class Compiler {
   public static void main(String[] args) throws Exception {
     // CharStream input = CharStreams.fromFileName("input");
-    CharStream input = CharStreams.fromStream(System.in);
-    MxLexer lexer = new MxLexer(input);
+    var input = CharStreams.fromStream(System.in);
+    var lexer = new MxLexer(input);
     lexer.removeErrorListeners();
     lexer.addErrorListener(new MxErrorListener());
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    MxParser parser = new MxParser(tokens);
+    var tokens = new CommonTokenStream(lexer);
+    var parser = new MxParser(tokens);
     parser.removeErrorListeners();
     parser.addErrorListener(new MxErrorListener());
 
-    ParseTree root = parser.program();
-    ASTBuilder astBuilder = new ASTBuilder();
-    ProgramNode rootNode = (ProgramNode) astBuilder.visit(root);
-    GlobalScope gScope = new GlobalScope();
-    SymbolCollector symbolCollector = new SymbolCollector(gScope);
+    var root = parser.program();
+    var astBuilder = new ASTBuilder();
+    var rootNode = (ProgramNode) astBuilder.visit(root);
+    var gScope = new GlobalScope();
+    var symbolCollector = new SymbolCollector(gScope);
     symbolCollector.visit(rootNode);
     // gScope.print();
-    SemanticChecker semanticChecker = new SemanticChecker(gScope);
+    var semanticChecker = new SemanticChecker(gScope);
     semanticChecker.visit(rootNode);
     // System.out.println(root.toStringTree());
+
+    var irBuilder = new IRBuilder(gScope);
+    irBuilder.visit(rootNode);
+    var irPrinter = new IRPrinter(System.out, "input.mx");
+    irPrinter.print(irBuilder.module);
   }
 }
