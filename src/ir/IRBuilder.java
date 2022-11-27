@@ -1,11 +1,15 @@
 package ir;
 
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 import ast.*;
 import ast.expr.*;
 import ast.stmt.*;
 import ir.constant.GlobalVariable;
+import ir.constant.IntConst;
+import ir.constant.NullptrConst;
+import ir.constant.StringConst;
 import ir.inst.AllocaInst;
 import ir.inst.*;
 import ir.structure.BasicBlock;
@@ -22,6 +26,8 @@ public class IRBuilder implements ASTVisitor {
   private BasicBlock curBlock;
   public ClassScope clsScope;
   public Module module = new Module();
+
+  Logger logger = Logger.getLogger("IRBuilder");
 
   public IRBuilder(GlobalScope gScope) {
     this.gScope = gScope;
@@ -88,7 +94,7 @@ public class IRBuilder implements ASTVisitor {
     for (int i = 0; i < node.params.params.size(); ++i) {
       var paramNode = node.params.params.get(i);
       var type = funcType.paramTypes.get(i);
-      var ptr = newAlloca(type, paramNode.name + ".addr");
+      var ptr = newAlloca(type, "%" + paramNode.name + ".addr");
       curScope.addVar(paramNode.name, ptr);
       var val = new Value(type, paramNode.name);
       curFunc.addArg(val);
@@ -148,6 +154,10 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(SuiteNode node) {
     // TODO Auto-generated method stub
+    curScope = node.scope;
+    for (var i : node.stmts)
+      i.accept(this);
+    curScope = curScope.parent;
   }
 
   @Override
@@ -158,11 +168,33 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(AssignExprNode node) {
     // TODO Auto-generated method stub
+    node.rhs.accept(this);
+    node.lhs.accept(this);
+    newStore(getValue(node.rhs), node.lhs.ptr);
   }
 
   @Override
   public void visit(AtomExprNode node) {
     // TODO Auto-generated method stub
+    if (node.isFunc) {
+      node.val = gScope.getFunc(node.text);
+    } else if (node.isLeftVal) { // identifier
+      // TODO: class
+      node.ptr = gScope.getVar(node.text, true);
+    } else { // literal -> ir constant data
+      var typename = node.type.typename;
+      if (typename.equals("bool")) {
+        node.val = new IntConst(node.text.equals("true") ? 1 : 0, 1);
+      } else if (typename.equals("int")) {
+        node.val = new IntConst(Integer.parseInt(node.text), 32);
+      } else if (typename.equals("null")) {
+        node.val = new NullptrConst();
+      } else if (typename.equals("string")) {
+        node.val = new StringConst(node.unescape());
+      } else {
+        throw new IRBuildError("unknown type when visiting AtomExprNode");
+      }
+    }
   }
 
   @Override
@@ -279,6 +311,10 @@ public class IRBuilder implements ASTVisitor {
       return new PointerType(new IntType(8));
     } else if (typename.equals("void")) {
       return new VoidType();
+    } else if (typename.equals("null")) {
+      // Note: the ir type of nullptr constant may be incorrect!
+      // When null is used, the correct type is inferred from other operand.
+      return new PointerType(new IntType(32));
     } else {
       throw new IRBuildError("unknown elementary type");
     }
@@ -296,7 +332,18 @@ public class IRBuilder implements ASTVisitor {
     return getElemType(type.typename);
   }
 
+  private Value getValue(ExprNode node) {
+    if (node.val != null)
+      return node.val;
+    return newLoad(nextName(), node.ptr);
+  }
+
   private HashMap<String, Integer> identifiers = new HashMap<>();
+  private int cntName = 0; // for unnamed values
+
+  private String nextName() {
+    return "%" + cntName++;
+  }
 
   private String rename(String rawName) {
     var cnt = identifiers.get(rawName);

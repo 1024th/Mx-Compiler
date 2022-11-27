@@ -96,9 +96,7 @@ public class SemanticChecker implements ASTVisitor {
     node.returnType.accept(this);
     this.curScope = node.scope = new FuncScope(node.returnType, false, this.curScope);
     node.params.accept(this);
-    for (var i : node.body.stmts) {
-      i.accept(this);
-    }
+    node.body.accept(this);
     if (!node.funcName.equals("main") && !node.returnType.isVoid() && !node.scope.hasReturn) {
       throw new SemanticError("non-void function should have return value", node.pos);
     }

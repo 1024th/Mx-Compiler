@@ -28,4 +28,9 @@ public class BasicBlock extends Value {
     if (inst.isTerminator())
       this.terminated = true;
   }
+
+  @Override
+  public String name() {
+    return "%" + this.name;
+  }
 }

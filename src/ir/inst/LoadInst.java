@@ -13,6 +13,6 @@ public class LoadInst extends BaseInst {
   @Override
   public String toString() {
     var ptr = this.getOperand(0);
-    return "%s = load %s, %s, align %d".formatted(this.name, this.type, ptr.typedName(), ptr.type.size());
+    return "%s = load %s, %s, align %d".formatted(this.name(), this.type, ptr.typedName(), ptr.type.size());
   }
 }

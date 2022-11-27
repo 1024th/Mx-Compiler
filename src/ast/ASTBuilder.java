@@ -346,6 +346,7 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> {
   public ASTNode visitFuncCallExpr(FuncCallExprContext ctx) {
     var func = (ExprNode) visit(ctx.expr());
     func.isFunc = true;
+    func.isLeftVal = false;
     var ret = new FuncCallExprNode(func, new Position(ctx));
     if (ctx.argumentList() != null) {
       for (var i : ctx.argumentList().expr()) {

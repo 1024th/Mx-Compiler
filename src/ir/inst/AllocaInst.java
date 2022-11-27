@@ -14,6 +14,6 @@ public class AllocaInst extends BaseInst {
 
   @Override
   public String toString() {
-    return "%s = alloca %s, align %d".formatted(name, elemType.toString(), elemType.size());
+    return "%s = alloca %s, align %d".formatted(name(), elemType.toString(), elemType.size());
   }
 }

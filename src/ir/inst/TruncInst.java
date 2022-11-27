@@ -13,6 +13,6 @@ public class TruncInst extends BaseInst {
   @Override
   public String toString() {
     var val = this.getOperand(0);
-    return "%s = trunc %s to %s".formatted(name, val.typedName(), this.type);
+    return "%s = trunc %s to %s".formatted(name(), val.typedName(), this.type);
   }
 }

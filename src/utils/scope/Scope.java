@@ -30,12 +30,10 @@ public class Scope {
 
   public SingleVarDefNode getVarDef(String name, boolean recursive) {
     var i = this.varDefs.get(name);
-    if (i != null) {
+    if (i != null)
       return i;
-    }
-    if (recursive && this.parent != null) {
+    if (recursive && this.parent != null)
       return this.parent.getVarDef(name, recursive);
-    }
     return null;
   }
 
@@ -43,8 +41,13 @@ public class Scope {
     vars.put(name, v);
   }
 
-  public AllocaInst getVar(String name) {
-    return vars.get(name);
+  public AllocaInst getVar(String name, boolean recursive) {
+    var i = vars.get(name);
+    if (i != null)
+      return i;
+    if (recursive && this.parent != null)
+      return this.parent.getVar(name, recursive);
+    return null;
   }
 
   // check if current scope is inside a loop scope

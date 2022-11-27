@@ -14,6 +14,6 @@ public class GlobalVariable extends Constant {
   public String toString() {
     var elemType = ((PointerType) this.type).elemType;
     var init = this.initVal == null ? "zeroinitializer" : this.initVal.toString();
-    return "%s = global %s %s, align %d".formatted(this.name, elemType, init, this.type.size());
+    return "%s = global %s %s, align %d".formatted(this.name(), elemType, init, this.type.size());
   }
 }

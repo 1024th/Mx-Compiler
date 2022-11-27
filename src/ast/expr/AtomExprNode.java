@@ -14,6 +14,14 @@ public class AtomExprNode extends ExprNode {
     this.text = text;
   }
 
+  public String unescape() {
+    return text.substring(1, text.length() - 1)
+        .replace("\\\"", "\"")
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\\\", "\\");
+  }
+
   @Override
   public void accept(ASTVisitor visitor) {
     visitor.visit(this);

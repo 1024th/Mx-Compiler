@@ -25,9 +25,9 @@ public class CallInst extends BaseInst {
     var func = getFunc();
     String s = "";
     if (!(this.type instanceof VoidType)) {
-      s += "%s = ".formatted(name);
+      s += "%s = ".formatted(name());
     }
-    s += "call void %s(".formatted(func.name);
+    s += "call void %s(".formatted(func.name());
     boolean first = true;
     for (var i : operands) {
       if (!first)
