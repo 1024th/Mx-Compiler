@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import ast.TypeNode;
 import ast.stmt.SingleVarDefNode;
+import ir.Value;
 import ir.inst.AllocaInst;
 import utils.error.SemanticError;
 
@@ -41,7 +42,7 @@ public class Scope {
     vars.put(name, v);
   }
 
-  public AllocaInst getVar(String name, boolean recursive) {
+  public Value getVar(String name, boolean recursive) {
     var i = vars.get(name);
     if (i != null)
       return i;

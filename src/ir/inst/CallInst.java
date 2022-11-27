@@ -28,12 +28,10 @@ public class CallInst extends BaseInst {
       s += "%s = ".formatted(name());
     }
     s += "call void %s(".formatted(func.name());
-    boolean first = true;
-    for (var i : operands) {
-      if (!first)
+    for (int i = 1; i < this.operands.size(); ++i) {
+      if (i > 1)
         s += ", ";
-      first = false;
-      s += i.typedName();
+      s += this.getOperand(i).typedName();
     }
     s += ")";
     return s;

@@ -6,10 +6,7 @@ import java.util.logging.Logger;
 import ast.*;
 import ast.expr.*;
 import ast.stmt.*;
-import ir.constant.GlobalVariable;
-import ir.constant.IntConst;
-import ir.constant.NullptrConst;
-import ir.constant.StringConst;
+import ir.constant.*;
 import ir.inst.AllocaInst;
 import ir.inst.*;
 import ir.structure.BasicBlock;
@@ -40,7 +37,7 @@ public class IRBuilder implements ASTVisitor {
         declareClass((ClassDefNode) i);
       }
       if (i instanceof VarDefNode) {
-        for (var j : node.defs)
+        for (var j : ((VarDefNode) i).vars)
           declareGlobalVar((SingleVarDefNode) j);
       }
     }
@@ -53,10 +50,6 @@ public class IRBuilder implements ASTVisitor {
     // TODO Auto-generated method stub
     for (var i : node.defs) {
       if (i instanceof ClassDefNode)
-        i.accept(this);
-    }
-    for (var i : node.defs) {
-      if (i instanceof VarDefNode)
         i.accept(this);
     }
     for (var i : node.defs) {
@@ -108,12 +101,20 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(VarDefNode node) {
-    // TODO Auto-generated method stub
+    for (var i : node.vars) {
+      i.accept(this);
+    }
   }
 
   @Override
   public void visit(SingleVarDefNode node) {
     // TODO Auto-generated method stub
+    var ptr = newAlloca(getType(node.type), "%" + node.name + ".addr");
+    if (node.initExpr != null) {
+      node.initExpr.accept(this);
+      newStore(getValue(node.initExpr), ptr);
+    }
+    curScope.addVar(node.name, ptr);
   }
 
   @Override
@@ -182,7 +183,7 @@ public class IRBuilder implements ASTVisitor {
       node.val = gScope.getFunc(node.text);
     } else if (node.isLeftVal) { // identifier
       // TODO: class
-      node.ptr = gScope.getVar(node.text, true);
+      node.ptr = curScope.getVar(node.text, true);
     } else { // literal -> ir constant data
       var typename = node.type.typename;
       if (typename.equals("bool")) {
@@ -294,14 +295,19 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private void declareGlobalVar(SingleVarDefNode node) {
-    var name = "@" + node.name;
+    var name = rename("@" + node.name);
     var v = new GlobalVariable(getType(node.type), name);
     if (node.initExpr != null) {
-      // TODO
-      // v.initVal = ;
+      node.initExpr.accept(this);
+      if (node.initExpr.val instanceof Constant) {
+        v.initVal = node.initExpr.val;
+      } else {
+        // TODO
+        // need to run some instructions to initialize this global variable
+      }
     }
     module.globalVars.add(v);
-    gScope.globalVars.put(name, v);
+    gScope.globalVars.put(node.name, v);
   }
 
   private static BaseType getElemType(String typename) {
@@ -343,6 +349,7 @@ public class IRBuilder implements ASTVisitor {
   private HashMap<String, Integer> identifiers = new HashMap<>();
   private int cntName = 0; // for unnamed values
 
+  /** get next available identifier for unnamed values */
   private String nextName() {
     return "%" + cntName++;
   }
@@ -381,7 +388,7 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private Value newLoad(String name, Value ptr) {
-    return newLoad(rename(name), ptr, curBlock);
+    return newLoad(name, ptr, curBlock);
   }
 
   private StoreInst newStore(Value val, Value ptr) {

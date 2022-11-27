@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 
 import ast.FuncDefNode;
+import ir.Value;
 import ir.constant.GlobalVariable;
 import ir.structure.Function;
 import ir.type.StructType;
@@ -38,6 +39,11 @@ public class GlobalScope extends Scope {
 
   public Function getFunc(String funcName) {
     return funcs.get(funcName);
+  }
+
+  @Override
+  public Value getVar(String name, boolean recursive) {
+    return globalVars.get(name);
   }
 
   public FuncDefNode getFuncDef(String name) {
