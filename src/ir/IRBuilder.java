@@ -229,7 +229,9 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(IndexExprNode node) {
-    // TODO Auto-generated method stub
+    node.array.accept(this);
+    node.index.accept(this);
+    node.ptr = newGEP("%arrayidx", node.array.ptr.type, node.array.ptr, node.index.val);
   }
 
   @Override
@@ -304,7 +306,8 @@ public class IRBuilder implements ASTVisitor {
     for (var j : node.params.params) {
       funcType.paramTypes.add(getType(j.type));
     }
-    var func = new Function(funcType, "@" + node.funcName);
+    var funcName = node.funcName.equals("main") ? "@main" : "@func." + node.funcName;
+    var func = new Function(funcType, funcName);
     module.funcs.add(func);
     gScope.addFunc(node.funcName, func);
   }
@@ -353,6 +356,31 @@ public class IRBuilder implements ASTVisitor {
       return new PointerType(gScope.getClassType(type.typename));
     }
     return getElemType(type.typename);
+  }
+
+  private static String getOperator(String op) {
+    // @formatter:off
+    switch (op) {
+      case "+": return "add";
+      case "-": return "sub";
+      case "*": return "mul";
+      case "/": return "div";
+      case "%": return "mod";
+      case "&": return "and";
+      case "|": return "or";
+      case "^": return "xor";
+      case "<<": return "shl";
+      case ">>": return "ashr"; // arithmetic
+      // icmp condition code
+      case ">": return "sgt";
+      case ">=": return "sge";
+      case "<": return "slt";
+      case "<=": return "sle";
+      case "==": return "eq";
+      case "!=": return "ne";
+    }
+    return "";
+    // @formatter:on
   }
 
   private Value getValue(ExprNode node) {
@@ -408,6 +436,10 @@ public class IRBuilder implements ASTVisitor {
 
   private StoreInst newStore(Value val, Value ptr) {
     return new StoreInst(val, ptr, curBlock);
+  }
+
+  private GetElementPtrInst newGEP(String name, BaseType retType, Value ptr, Value... idx) {
+    return new GetElementPtrInst(rename(name), retType, ptr, curBlock, idx);
   }
 
   private RetInst newRet(Value val) {
