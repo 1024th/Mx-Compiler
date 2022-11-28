@@ -32,10 +32,10 @@ public class SemanticChecker implements ASTVisitor {
     addBuiltinFunc("toString", stringType, intType);
 
     ClassScope stringCls = new ClassScope("string", this.gScope, null);
-    stringCls.addFunc(newBuiltinFunc("length", intType));
-    stringCls.addFunc(newBuiltinFunc("substring", stringType, intType, intType));
-    stringCls.addFunc(newBuiltinFunc("parseInt", intType));
-    stringCls.addFunc(newBuiltinFunc("ord", intType, intType));
+    stringCls.addFuncDef(newBuiltinFunc("length", intType));
+    stringCls.addFuncDef(newBuiltinFunc("substring", stringType, intType, intType));
+    stringCls.addFuncDef(newBuiltinFunc("parseInt", intType));
+    stringCls.addFuncDef(newBuiltinFunc("ord", intType, intType));
     this.gScope.addClassScope(stringCls);
 
     // represent the 'size' function of array type
@@ -282,7 +282,7 @@ public class SemanticChecker implements ASTVisitor {
       if (node.isFunc) {
         FuncDefNode funcDef = null;
         if (cls != null) {
-          funcDef = cls.getFunc(node.text);
+          funcDef = cls.getFuncDef(node.text);
         }
         if (funcDef == null) {
           funcDef = this.gScope.getFuncDef(node.text);
@@ -412,7 +412,7 @@ public class SemanticChecker implements ASTVisitor {
     var clsName = node.instance.type.typename;
     var cls = this.gScope.getClassScope(clsName);
     if (node.isFunc) {
-      var funcDef = cls.getFunc(node.member);
+      var funcDef = cls.getFuncDef(node.member);
       if (funcDef == null) {
         throw new SemanticError("class '" + clsName + "' has no member function named '" + node.member + "'", node.pos);
       }

@@ -1,5 +1,6 @@
 package ir;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
@@ -7,7 +8,6 @@ import ast.*;
 import ast.expr.*;
 import ast.stmt.*;
 import ir.constant.*;
-import ir.inst.AllocaInst;
 import ir.inst.*;
 import ir.structure.BasicBlock;
 import ir.structure.Function;
@@ -89,7 +89,7 @@ public class IRBuilder implements ASTVisitor {
       var type = funcType.paramTypes.get(i);
       var ptr = newAlloca(type, "%" + paramNode.name + ".addr");
       curScope.addVar(paramNode.name, ptr);
-      var val = new Value(type, paramNode.name);
+      var val = new Value(type, "%" + paramNode.name);
       curFunc.addArg(val);
       newStore(val, ptr);
     }
@@ -151,7 +151,9 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ExprStmtNode node) {
-    // TODO Auto-generated method stub
+    if (node.expr != null) {
+      node.expr.accept(this);
+    }
   }
 
   @Override
@@ -165,7 +167,7 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(TypeNode node) {
-    // TODO Auto-generated method stub
+    // Not used
   }
 
   @Override
@@ -207,7 +209,17 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(FuncCallExprNode node) {
-    // TODO Auto-generated method stub
+    node.function.accept(this);
+    var paramTypes = ((Function) node.function.val).type().paramTypes;
+    var args = new ArrayList<Value>();
+    for (int i = 0; i < node.args.size(); ++i) {
+      var arg = node.args.get(i);
+      arg.accept(this);
+      var arg_val = getValue(arg);
+      arg_val.type = paramTypes.get(i); // null as argument
+      args.add(arg_val);
+    }
+    node.val = new CallInst(nextName(), (Function) node.function.val, curBlock, args);
   }
 
   @Override
@@ -268,6 +280,7 @@ public class IRBuilder implements ASTVisitor {
 
   private void declareMemberFunc(ClassDefNode node) {
     var cls = gScope.getClassType(node.className);
+    var clsScope = gScope.getClassScope(node.className);
     for (var i : node.defs) {
       if (i instanceof FuncDefNode) {
         var funcDef = (FuncDefNode) i;
@@ -276,10 +289,12 @@ public class IRBuilder implements ASTVisitor {
         for (var j : funcDef.params.params) {
           funcType.paramTypes.add(getType(j.type));
         }
-        var func = new Function(funcType, "@%s.%s".formatted(node.className, funcDef.funcName));
+        var funcName = "@%s.%s".formatted(node.className, funcDef.funcName);
+        var func = new Function(funcType, funcName);
         module.funcs.add(func);
         // TODO
         // gScope.addFunc(funcDef, func);
+        clsScope.addFunc(funcDef.funcName, func);
       }
     }
   }

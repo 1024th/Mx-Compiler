@@ -3,6 +3,7 @@ package ir.structure;
 import java.util.ArrayList;
 
 import ir.Value;
+import ir.inst.AllocaInst;
 import ir.inst.BaseInst;
 import ir.type.LabelType;
 
@@ -24,9 +25,23 @@ public class BasicBlock extends Value {
   }
 
   public void addInst(BaseInst inst) {
-    insts.add(inst);
+    if (inst instanceof AllocaInst)
+      addAlloca((AllocaInst) inst);
+    else
+      insts.add(inst);
     if (inst.isTerminator())
       this.terminated = true;
+  }
+
+  public void addAlloca(AllocaInst allocaInst) {
+    for (int i = 0; i < insts.size(); ++i) {
+      var inst = insts.get(i);
+      if (!(inst instanceof AllocaInst)) {
+        insts.add(i, allocaInst);
+        return;
+      }
+    }
+    insts.add(allocaInst);
   }
 
   @Override

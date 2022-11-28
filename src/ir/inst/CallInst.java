@@ -8,8 +8,8 @@ import ir.structure.Function;
 import ir.type.VoidType;
 
 public class CallInst extends BaseInst {
-  public CallInst(Function func, BasicBlock parent, ArrayList<Value> args) {
-    super(func.type().retType, func.name, parent);
+  public CallInst(String name, Function func, BasicBlock parent, ArrayList<Value> args) {
+    super(func.type().retType, name, parent);
     addOperand(func);
     for (var i : args) {
       addOperand(i);
@@ -27,7 +27,7 @@ public class CallInst extends BaseInst {
     if (!(this.type instanceof VoidType)) {
       s += "%s = ".formatted(name());
     }
-    s += "call void %s(".formatted(func.name());
+    s += "call %s %s(".formatted(func.type().retType, func.name());
     for (int i = 1; i < this.operands.size(); ++i) {
       if (i > 1)
         s += ", ";

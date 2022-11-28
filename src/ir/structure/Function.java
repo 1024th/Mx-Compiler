@@ -28,13 +28,4 @@ public class Function extends Constant {
   public Value getArg(int i) {
     return this.getOperand(i);
   }
-
-  public void addAlloca(AllocaInst allocaInst) {
-    for (int i = 0; i < this.entryBlock.insts.size(); ++i) {
-      var inst = this.entryBlock.insts.get(i);
-      if (!(inst instanceof AllocaInst)) {
-        this.entryBlock.insts.add(i, allocaInst);
-      }
-    }
-  }
 }

@@ -45,7 +45,7 @@ public class SymbolCollector implements ASTVisitor {
   @Override
   public void visit(FuncDefNode node) {
     if (this.clsScope != null) {
-      this.clsScope.addFunc(node);
+      this.clsScope.addFuncDef(node);
     } else {
       this.gScope.addFuncDef(node);
     }

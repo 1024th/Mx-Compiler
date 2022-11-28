@@ -7,19 +7,23 @@ import java.util.logging.Logger;
 import ast.ClassCtorDefNode;
 import ast.FuncDefNode;
 import ast.stmt.SingleVarDefNode;
+import ir.structure.Function;
 import utils.Position;
 import utils.error.SemanticError;
 
 public class ClassScope extends Scope {
   public String className;
   public Position pos;
-  public HashMap<String, FuncDefNode> funcs = new HashMap<>();
+  // member function definitions
+  public HashMap<String, FuncDefNode> funcDefs = new HashMap<>();
   public ClassCtorDefNode ctor;
   // for IR getelementptr
   public HashMap<String, Integer> memberVarIndex = new HashMap<>();
+  // IR member functions
+  public HashMap<String, Function> funcs = new HashMap<>();
 
-  public ClassScope(String className, GlobalScope parent, Position pos) { // Mx* does not support nested class
-                                                                          // definition
+  // parent must be GlobalScope, because Mx* does not support nested class definition
+  public ClassScope(String className, GlobalScope parent, Position pos) {
     super(parent, false);
     this.className = className;
     this.pos = pos;
@@ -35,15 +39,23 @@ public class ClassScope extends Scope {
     return memberVarIndex.get(name);
   }
 
-  public void addFunc(FuncDefNode func) {
-    if (funcs.containsKey(func.funcName)) { // Mx* does not support function overloading
+  public void addFuncDef(FuncDefNode func) {
+    if (funcDefs.containsKey(func.funcName)) { // Mx* does not support function overloading
       throw new SemanticError("redefinition of function '" + func.funcName + "'", func.pos);
     }
-    funcs.put(func.funcName, func);
+    funcDefs.put(func.funcName, func);
   }
 
-  public FuncDefNode getFunc(String name) {
-    return this.funcs.get(name);
+  public FuncDefNode getFuncDef(String name) {
+    return this.funcDefs.get(name);
+  }
+
+  public void addFunc(String funcName, Function func) {
+    funcs.put(funcName, func);
+  }
+
+  public Function getFunc(String funcName) {
+    return this.funcs.get(funcName);
   }
 
   public void addCtor(ClassCtorDefNode ctor) {
@@ -58,7 +70,7 @@ public class ClassScope extends Scope {
   public void print() {
     Logger logger = Logger.getLogger("Scope");
     logger.info("print ClassScope\nmember functions:");
-    this.funcs.forEach((name, func) -> {
+    this.funcDefs.forEach((name, func) -> {
       logger.info(name);
     });
     logger.info("print ClassScope\nmember variables:");
