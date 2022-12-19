@@ -3,6 +3,7 @@ package ir.inst;
 import ir.Value;
 import ir.structure.BasicBlock;
 import ir.type.BaseType;
+import ir.type.PointerType;
 import utils.TextUtils;
 
 public class GetElementPtrInst extends BaseInst {
@@ -15,7 +16,9 @@ public class GetElementPtrInst extends BaseInst {
 
   @Override
   public String toString() {
+    var ptr = this.getOperand(0);
     return "%s = getelementptr inbounds %s, %s".formatted(
-        name(), type, TextUtils.join(operands, x -> x.typedName()));
+        name(), ((PointerType) ptr.type).elemType,
+        TextUtils.join(operands, x -> x.typedName()));
   }
 }
