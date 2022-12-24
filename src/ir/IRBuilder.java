@@ -73,8 +73,8 @@ public class IRBuilder implements ASTVisitor {
     // TODO Auto-generated method stub
     // TODO member function
     curFunc = gScope.getFunc(node.funcName);
-    curFunc.entryBlock = new BasicBlock("entry", curFunc);
-    curFunc.exitBlock = new BasicBlock("exit", curFunc);
+    curFunc.entryBlock = newBlock("entry");
+    curFunc.exitBlock = newBlock("exit");
     curScope = node.scope;
     var funcType = curFunc.type();
     curBlock = curFunc.entryBlock;
@@ -120,26 +120,102 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(ForStmtNode node) {
     // TODO Auto-generated method stub
+    var condBlock = newBlock("for.cond");
+    var bodyBlock = newBlock("for.body");
+    var incBlock = newBlock("for.inc");
+    var endBlock = newBlock("for.end");
+    node.scope.continueBlock = incBlock;
+    node.scope.breakBlock = endBlock;
+    curScope = node.scope;
+    if (node.initVar != null) {
+      node.initVar.accept(this);
+    }
+    if (node.initExpr != null) {
+      node.initExpr.accept(this);
+    }
+    new BrInst(condBlock, curBlock);
+    curBlock = condBlock;
+    if (node.condition != null) {
+      node.condition.accept(this);
+      new BrInst(getValue(node.condition), bodyBlock, endBlock, curBlock);
+    } else {
+      new BrInst(bodyBlock, curBlock);
+    }
+
+    curBlock = bodyBlock;
+    node.body.accept(this);
+    new BrInst(incBlock, curBlock);
+
+    curBlock = incBlock;
+    if (node.increase != null) {
+      node.increase.accept(this);
+    }
+    new BrInst(condBlock, curBlock);
+
+    curBlock = endBlock;
+    curScope = curScope.parent;
   }
 
   @Override
   public void visit(IfStmtNode node) {
     // TODO Auto-generated method stub
+    var thenBlock = newBlock("if.then");
+    var elseBlock = newBlock("if.else");
+    var endBlock = newBlock("if.end");
+
+    node.condition.accept(this);
+    new BrInst(getValue(node.condition), thenBlock, elseBlock, curBlock);
+
+    curBlock = thenBlock;
+    curScope = node.thenScope;
+    node.thenStmt.accept(this);
+    new BrInst(endBlock, curBlock);
+    curScope = curScope.parent;
+
+    curBlock = elseBlock;
+    if (node.elseStmt != null) {
+      curScope = node.elseScope;
+      node.elseStmt.accept(this);
+      curScope = curScope.parent;
+    }
+    new BrInst(endBlock, curBlock);
+
+    curBlock = endBlock;
   }
 
   @Override
   public void visit(WhileStmtNode node) {
     // TODO Auto-generated method stub
+    var condBlock = newBlock("while.cond");
+    var bodyBlock = newBlock("while.body");
+    var endBlock = newBlock("while.end");
+    node.scope.continueBlock = condBlock;
+    node.scope.breakBlock = endBlock;
+    curScope = node.scope;
+
+    new BrInst(condBlock, curBlock);
+    curBlock = condBlock;
+    node.condition.accept(this);
+    new BrInst(getValue(node.condition), bodyBlock, endBlock, curBlock);
+
+    curBlock = bodyBlock;
+    node.body.accept(this);
+    new BrInst(condBlock, curBlock);
+
+    curBlock = endBlock;
+    curScope = curScope.parent;
   }
 
   @Override
   public void visit(BreakStmtNode node) {
     // TODO Auto-generated method stub
+    new BrInst(curScope.getLoopScope().breakBlock, curBlock);
   }
 
   @Override
   public void visit(ContinueStmtNode node) {
     // TODO Auto-generated method stub
+    new BrInst(curScope.getLoopScope().continueBlock, curBlock);
   }
 
   @Override
@@ -292,7 +368,7 @@ public class IRBuilder implements ASTVisitor {
           funcType.paramTypes.add(getType(j.type));
         }
         var funcName = "@%s.%s".formatted(node.className, funcDef.funcName);
-        var func = new Function(funcType, funcName);
+        var func = new Function(funcType, funcName, true);
         module.funcs.add(func);
         // TODO
         // gScope.addFunc(funcDef, func);
@@ -307,7 +383,7 @@ public class IRBuilder implements ASTVisitor {
       funcType.paramTypes.add(getType(j.type));
     }
     var funcName = node.funcName.equals("main") ? "@main" : "@func." + node.funcName;
-    var func = new Function(funcType, funcName);
+    var func = new Function(funcType, funcName, false);
     module.funcs.add(func);
     gScope.addFunc(node.funcName, func);
   }
@@ -328,19 +404,27 @@ public class IRBuilder implements ASTVisitor {
     gScope.globalVars.put(node.name, v);
   }
 
+  private static final BaseType // @formatter:off
+    i32Type = new IntType(32),
+    i8Type  = new IntType(8),
+    i1Type  = new IntType(1),
+    i8PtrType = new PointerType(i8Type),
+    i32PtrType = new PointerType(i32Type),
+    voidType = new VoidType(); // @formatter:on
+
   private static BaseType getElemType(String typename) {
     if (typename.equals("int")) {
-      return new IntType(32);
+      return i32Type;
     } else if (typename.equals("bool")) {
-      return new IntType(1);
+      return i1Type;
     } else if (typename.equals("string")) {
-      return new PointerType(new IntType(8));
+      return i8PtrType;
     } else if (typename.equals("void")) {
-      return new VoidType();
+      return voidType;
     } else if (typename.equals("null")) {
       // Note: the ir type of nullptr constant may be incorrect!
       // When null is used, the correct type is inferred from other operand.
-      return new PointerType(new IntType(32));
+      return i32PtrType;
     } else {
       throw new IRBuildError("unknown elementary type");
     }
@@ -394,7 +478,7 @@ public class IRBuilder implements ASTVisitor {
 
   /** get next available identifier for unnamed values */
   private String nextName() {
-    return "%" + cntName++;
+    return "%." + cntName++;
   }
 
   private String rename(String rawName) {
@@ -418,14 +502,14 @@ public class IRBuilder implements ASTVisitor {
   private AllocaInst newAlloca(BaseType type, String name) {
     // bool (i1), alloca i8
     if (isBool(type))
-      type = new IntType(8);
+      type = i8Type;
     return new AllocaInst(type, rename(name), curFunc.entryBlock);
   }
 
   private Value newLoad(String name, Value ptr, BasicBlock parent) {
     var loadInst = new LoadInst(rename(name), ptr, parent);
     if (isBool(((PointerType) ptr.type).elemType)) {
-      return newTrunc(loadInst, new IntType(1), rename(name + ".tobool"));
+      return newTrunc(loadInst, i1Type, rename(name + ".tobool"));
     }
     return loadInst;
   }
@@ -454,4 +538,43 @@ public class IRBuilder implements ASTVisitor {
   private TruncInst newTrunc(Value val, BaseType toType, String name) {
     return new TruncInst(val, toType, rename(name), curBlock);
   }
+
+  private BasicBlock newBlock(String name) {
+    return new BasicBlock(name, curFunc);
+  }
+
+  private void addBuiltin() {
+    addBuiltinFunc("print", voidType, i8PtrType);
+    addBuiltinFunc("println", voidType, i8PtrType);
+    addBuiltinFunc("printInt", voidType, i32Type);
+    addBuiltinFunc("printlnInt", voidType, i32Type);
+    addBuiltinFunc("getString", i8PtrType);
+    addBuiltinFunc("getInt", i32Type);
+    addBuiltinFunc("toString", i8PtrType, i32Type);
+
+    // ClassScope stringCls = this.gScope.getClassScope("string");
+    addBuiltinFunc("length", i32Type, i8PtrType);
+    addBuiltinFunc("substring", i8PtrType, i8PtrType, i32Type, i32Type);
+    addBuiltinFunc("parseInt", i32Type, i8PtrType);
+    addBuiltinFunc("ord", i32Type, i8PtrType, i32Type);
+
+    // represent the 'size' function of array type
+    addBuiltinFunc(".size", i32Type, i32PtrType);
+  }
+
+  private void addBuiltinFunc(String funcName, BaseType returnType, BaseType... paramTypes) {
+    var func = newBuiltinFunc(funcName, returnType, paramTypes);
+    module.funcDecls.add(func);
+    this.gScope.addFunc(funcName, func);
+  }
+
+  private Function newBuiltinFunc(String funcName, BaseType returnType, BaseType... paramTypes) {
+    var funcType = new FuncType(returnType);
+    for (var j : paramTypes) {
+      funcType.paramTypes.add(j);
+    }
+    funcName = rename("@" + funcName);
+    return new Function(funcType, funcName, false);
+  }
+
 }

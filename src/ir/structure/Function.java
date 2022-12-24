@@ -13,8 +13,11 @@ public class Function extends Constant {
   public BasicBlock entryBlock, exitBlock;
   public Value retValPtr;
 
-  public Function(FuncType type, String name) {
+  public boolean isMember;
+
+  public Function(FuncType type, String name, boolean isMember) {
     super(type, name);
+    this.isMember = isMember;
   }
 
   public FuncType type() {

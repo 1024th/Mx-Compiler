@@ -8,6 +8,7 @@ import utils.scope.Scope;
 import utils.scope.ClassScope;
 import utils.scope.FuncScope;
 import utils.scope.GlobalScope;
+import utils.scope.LoopScope;
 
 public class SemanticChecker implements ASTVisitor {
   public GlobalScope gScope;
@@ -131,7 +132,7 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(ForStmtNode node) {
-    this.curScope = node.scope = new Scope(curScope, true);
+    this.curScope = node.scope = new LoopScope(curScope);
     if (node.initVar != null) {
       node.initVar.accept(this);
     }
@@ -157,12 +158,12 @@ public class SemanticChecker implements ASTVisitor {
     if (!node.condition.type.isBool()) {
       throw new SemanticError("the expression type should be bool", node.condition.pos);
     }
-    // statement inside if is in a new scope, even if it's not wrapped in {}
-    this.curScope = node.thenScope = new Scope(this.curScope, false);
+    // statement inside 'if' is in a new scope, even if it's not wrapped in {}
+    this.curScope = node.thenScope = new Scope(this.curScope);
     node.thenStmt.accept(this);
     this.curScope = this.curScope.parent;
     if (node.elseStmt != null) {
-      this.curScope = node.elseScope = new Scope(this.curScope, false);
+      this.curScope = node.elseScope = new Scope(this.curScope);
       node.elseStmt.accept(this);
       this.curScope = this.curScope.parent;
     }
@@ -170,7 +171,7 @@ public class SemanticChecker implements ASTVisitor {
 
   @Override
   public void visit(WhileStmtNode node) {
-    this.curScope = node.scope = new Scope(curScope, true);
+    this.curScope = node.scope = new LoopScope(curScope);
     node.condition.accept(this);
     if (!node.condition.type.isBool()) {
       throw new SemanticError("the expression type should be bool", node.condition.pos);
@@ -232,7 +233,7 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(SuiteNode node) {
     // loop scopes are create in their own visit function,
     // so only non-loop scopes are created here.
-    this.curScope = node.scope = new Scope(curScope, false);
+    this.curScope = node.scope = new Scope(curScope);
     for (var i : node.stmts) {
       i.accept(this);
     }

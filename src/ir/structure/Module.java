@@ -9,4 +9,6 @@ public class Module {
   public ArrayList<GlobalVariable> globalVars = new ArrayList<>();
   public ArrayList<Function> funcs = new ArrayList<>();
   public ArrayList<StructType> classes = new ArrayList<>();
+
+  public ArrayList<Function> funcDecls = new ArrayList<>();
 }

@@ -8,7 +8,7 @@ public class FuncScope extends Scope {
   public boolean isLambda;
 
   public FuncScope(TypeNode returnType, boolean isLambda, Scope parentScope) {
-    super(parentScope, false);
+    super(parentScope);
     this.returnType = returnType;
     this.isLambda = isLambda;
   }

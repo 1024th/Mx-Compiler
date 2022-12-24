@@ -20,7 +20,7 @@ public class GlobalScope extends Scope {
   public HashMap<String, GlobalVariable> globalVars = new HashMap<>();
 
   public GlobalScope() {
-    super(null, false);
+    super(null);
   }
 
   public void addFuncDef(FuncDefNode func) {

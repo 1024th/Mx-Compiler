@@ -24,7 +24,7 @@ public class ClassScope extends Scope {
 
   // parent must be GlobalScope, because Mx* does not support nested class definition
   public ClassScope(String className, GlobalScope parent, Position pos) {
-    super(parent, false);
+    super(parent);
     this.className = className;
     this.pos = pos;
   }

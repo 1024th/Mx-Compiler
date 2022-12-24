@@ -12,14 +12,12 @@ import utils.error.SemanticError;
 // part of all scopes).
 public class Scope {
   public final Scope parent;
-  public boolean isLoop; // for break and continue
   public HashMap<String, SingleVarDefNode> varDefs = new HashMap<>();
   // IR
   public HashMap<String, AllocaInst> vars = new HashMap<>();
 
-  public Scope(Scope parent, boolean isLoop) {
+  public Scope(Scope parent) {
     this.parent = parent;
-    this.isLoop = isLoop;
   }
 
   public void addVarDef(SingleVarDefNode v) {
@@ -53,11 +51,19 @@ public class Scope {
 
   // check if current scope is inside a loop scope
   public boolean insideLoop() {
-    if (this.isLoop)
+    if (this instanceof LoopScope)
       return true;
     if (!(this instanceof FuncScope) && !(this instanceof ClassScope) && this.parent != null)
       return this.parent.insideLoop();
     return false;
+  }
+
+  public LoopScope getLoopScope() {
+    if (this instanceof LoopScope)
+      return (LoopScope) this;
+    if (!(this instanceof FuncScope) && !(this instanceof ClassScope) && this.parent != null)
+      return this.parent.getLoopScope();
+    return null;
   }
 
   // recursively find the ClassScope from this scope and its ancestors,
