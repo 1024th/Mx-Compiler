@@ -20,7 +20,7 @@ public class RetInst extends BaseInst {
       return "ret void";
     }
     var val = this.getOperand(0);
-    return "ret %s".formatted(val.name());
+    return "ret %s".formatted(val.typedName());
   }
 
   @Override
