@@ -10,11 +10,11 @@ public class BrInst extends BaseInst {
     addOperand(dst);
   }
 
-  public BrInst(Value condition, BasicBlock ifTrue, BaseInst ifFalse, BasicBlock parent) {
+  public BrInst(Value condition, BasicBlock ifThen, BasicBlock ifElse, BasicBlock parent) {
     super(new VoidType(), "br", parent);
     addOperand(condition);
-    addOperand(ifTrue);
-    addOperand(ifFalse);
+    addOperand(ifThen);
+    addOperand(ifElse);
   }
 
   @Override
@@ -24,9 +24,9 @@ public class BrInst extends BaseInst {
       return "br " + dest.typedName();
     }
     var cond = this.getOperand(0);
-    var ifTrue = this.getOperand(1);
-    var ifFalse = this.getOperand(2);
-    return "br %s, %s, %s".formatted(cond.typedName(), ifTrue.typedName(), ifFalse.typedName());
+    var ifThen = this.getOperand(1);
+    var ifElse = this.getOperand(2);
+    return "br %s, %s, %s".formatted(cond.typedName(), ifThen.typedName(), ifElse.typedName());
   }
 
   @Override
