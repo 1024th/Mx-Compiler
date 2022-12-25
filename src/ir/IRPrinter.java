@@ -22,7 +22,9 @@ public class IRPrinter {
     p.println("target datalayout = \"e-m:e-p:32:32-i64:64-n32-S128\"");
     p.println("target triple = \"riscv32-unknown-unknown\"");
 
-    // TODO function declares
+    for (var func : module.funcDecls) {
+      this.declare(func);
+    }
     p.println();
     for (var cls : module.classes) {
       p.printf("%s = type {%s}\n", cls, TextUtils.join(cls.typeList));
@@ -47,6 +49,13 @@ public class IRPrinter {
       p.println();
     }
     p.println("}\n");
+  }
+
+  public void declare(Function func) {
+    var type = func.type();
+    p.printf("declare %s %s(%s)\n",
+        type.retType, func.name,
+        TextUtils.join(type.paramTypes));
   }
 
   public void print(BasicBlock block) {

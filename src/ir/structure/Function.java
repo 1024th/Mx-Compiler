@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import ir.Value;
 import ir.constant.Constant;
-import ir.inst.AllocaInst;
 import ir.type.FuncType;
 
 public class Function extends Constant {

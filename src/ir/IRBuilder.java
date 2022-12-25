@@ -28,6 +28,7 @@ public class IRBuilder implements ASTVisitor {
 
   public IRBuilder(GlobalScope gScope) {
     this.gScope = gScope;
+    addBuiltin();
   }
 
   @Override
@@ -281,6 +282,88 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(BinaryExprNode node) {
     // TODO Auto-generated method stub
+    node.lhs.accept(this);
+
+    // short-circuit evaluation for '&&' and '||'
+    if (node.op.equals("&&")) {
+      // a && b
+      // bool tmp;
+      // if (a) tmp = b;
+      // else tmp = 0;
+      node.ptr = newAlloca(i1Type, "%land.addr");
+      var rhsBlock = newBlock("land.rhs");
+      var shortBlock = newBlock("land.short");
+      var endBlock = newBlock("land.end");
+      new BrInst(getValue(node.lhs), rhsBlock, shortBlock, curBlock);
+
+      curBlock = rhsBlock;
+      node.rhs.accept(this);
+      newStore(getValue(node.rhs), node.ptr);
+      new BrInst(endBlock, curBlock);
+      curBlock = shortBlock;
+      newStore(falseConst, node.ptr);
+      new BrInst(endBlock, curBlock);
+      curBlock = endBlock;
+      return;
+    } else if (node.op.equals("||")) {
+      // a || b
+      // bool tmp;
+      // if (a) tmp = 1;
+      // else tmp = b;
+      node.ptr = newAlloca(i1Type, "%lor.addr");
+      var rhsBlock = newBlock("lor.rhs");
+      var shortBlock = newBlock("lor.short");
+      var endBlock = newBlock("lor.end");
+      new BrInst(getValue(node.lhs), shortBlock, rhsBlock, curBlock);
+
+      curBlock = shortBlock;
+      newStore(trueConst, node.ptr);
+      new BrInst(endBlock, curBlock);
+      curBlock = rhsBlock;
+      node.rhs.accept(this);
+      newStore(getValue(node.rhs), node.ptr);
+      new BrInst(endBlock, curBlock);
+      curBlock = endBlock;
+      return;
+    }
+
+    node.rhs.accept(this);
+    if (node.lhs.type.isString()) {
+      node.val = new CallInst(
+          nextName(), getStrMethod(node.op), curBlock,
+          getValue(node.lhs), getValue(node.rhs));
+    }
+
+    // @formatter:off
+    String op = null;
+    switch (node.op) {
+      case "==": op = "eq";  break;
+      case "!=": op = "ne";  break;
+      case ">":  op = "sgt"; break;
+      case ">=": op = "sge"; break;
+      case "<":  op = "slt"; break;
+      case "<=": op = "sle"; break;
+    }
+    // @formatter:on
+    if (op != null) {
+      node.val = new IcmpInst(op, getValue(node.lhs), getValue(node.rhs), nextName(), curBlock);
+    }
+
+    // @formatter:off
+    switch (node.op) {
+      case "+": op = "add"; break;
+      case "-": op = "sub"; break;
+      case "*": op = "mul"; break;
+      case "/": op = "sdiv"; break;
+      case "%": op = "srem"; break;
+      case "&": op = "and"; break;
+      case "|": op = "or";  break;
+      case "^": op = "xor"; break;
+      case "<<": op = "shl"; break;
+      case ">>": op = "ashr"; break;
+    }
+    // @formatter:on
+    node.val = new BinaryInst(op, getValue(node.lhs), getValue(node.rhs), nextName(), curBlock);
   }
 
   @Override
@@ -404,13 +487,18 @@ public class IRBuilder implements ASTVisitor {
     gScope.globalVars.put(node.name, v);
   }
 
-  private static final BaseType // @formatter:off
+  // @formatter:off
+  private static final BaseType
     i32Type = new IntType(32),
     i8Type  = new IntType(8),
     i1Type  = new IntType(1),
     i8PtrType = new PointerType(i8Type),
     i32PtrType = new PointerType(i32Type),
-    voidType = new VoidType(); // @formatter:on
+    voidType = new VoidType();
+  private static final IntConst
+    trueConst = new IntConst(1, 1),
+    falseConst = new IntConst(0, 1);
+  // @formatter:on
 
   private static BaseType getElemType(String typename) {
     if (typename.equals("int")) {
@@ -440,31 +528,6 @@ public class IRBuilder implements ASTVisitor {
       return new PointerType(gScope.getClassType(type.typename));
     }
     return getElemType(type.typename);
-  }
-
-  private static String getOperator(String op) {
-    // @formatter:off
-    switch (op) {
-      case "+": return "add";
-      case "-": return "sub";
-      case "*": return "mul";
-      case "/": return "div";
-      case "%": return "mod";
-      case "&": return "and";
-      case "|": return "or";
-      case "^": return "xor";
-      case "<<": return "shl";
-      case ">>": return "ashr"; // arithmetic
-      // icmp condition code
-      case ">": return "sgt";
-      case ">=": return "sge";
-      case "<": return "slt";
-      case "<=": return "sle";
-      case "==": return "eq";
-      case "!=": return "ne";
-    }
-    return "";
-    // @formatter:on
   }
 
   private Value getValue(ExprNode node) {
@@ -501,15 +564,18 @@ public class IRBuilder implements ASTVisitor {
 
   private AllocaInst newAlloca(BaseType type, String name) {
     // bool (i1), alloca i8
-    if (isBool(type))
-      type = i8Type;
+    if (isBool(type)) {
+      var inst = new AllocaInst(i8Type, rename(name), curFunc.entryBlock);
+      inst.isBool = true;
+      return inst;
+    }
     return new AllocaInst(type, rename(name), curFunc.entryBlock);
   }
 
   private Value newLoad(String name, Value ptr, BasicBlock parent) {
     var loadInst = new LoadInst(rename(name), ptr, parent);
-    if (isBool(((PointerType) ptr.type).elemType)) {
-      return newTrunc(loadInst, i1Type, rename(name + ".tobool"));
+    if (((AllocaInst) ptr).isBool) {
+      return newTrunc(loadInst, i1Type, name + ".tobool");
     }
     return loadInst;
   }
@@ -519,6 +585,9 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private StoreInst newStore(Value val, Value ptr) {
+    if (isBool(val.type)) {
+        val = new ZextInst(val, i8Type, rename("%zext"), curBlock);
+    }
     return new StoreInst(val, ptr, curBlock);
   }
 
@@ -543,6 +612,23 @@ public class IRBuilder implements ASTVisitor {
     return new BasicBlock(name, curFunc);
   }
 
+  private Function getStrMethod(String op) {
+    // @formatter:off
+    String name;
+    switch (op) {
+      case "==": name = "eq"; break;
+      case "!=": name = "ne"; break;
+      case ">":  name = "gt"; break;
+      case ">=": name = "ge"; break;
+      case "<":  name = "lt"; break;
+      case "<=": name = "le"; break;
+      case "+": name = "cat"; break;
+      default: throw new IRBuildError("unknown str operator");
+    }
+    // @formatter:on
+    return gScope.getFunc("__str_" + name);
+  }
+
   private void addBuiltin() {
     addBuiltinFunc("print", voidType, i8PtrType);
     addBuiltinFunc("println", voidType, i8PtrType);
@@ -553,10 +639,20 @@ public class IRBuilder implements ASTVisitor {
     addBuiltinFunc("toString", i8PtrType, i32Type);
 
     // ClassScope stringCls = this.gScope.getClassScope("string");
-    addBuiltinFunc("length", i32Type, i8PtrType);
-    addBuiltinFunc("substring", i8PtrType, i8PtrType, i32Type, i32Type);
-    addBuiltinFunc("parseInt", i32Type, i8PtrType);
-    addBuiltinFunc("ord", i32Type, i8PtrType, i32Type);
+    addBuiltinFunc("__malloc", i8PtrType, i32Type);
+    addBuiltinFunc("__str_length", i32Type, i8PtrType);
+    addBuiltinFunc("__str_substring", i8PtrType, i8PtrType, i32Type, i32Type);
+    addBuiltinFunc("__str_parseInt", i32Type, i8PtrType);
+    addBuiltinFunc("__str_ord", i32Type, i8PtrType, i32Type);
+
+    addBuiltinFunc("__str_eq", i1Type, i8PtrType, i8PtrType);
+    addBuiltinFunc("__str_ne", i1Type, i8PtrType, i8PtrType);
+    addBuiltinFunc("__str_gt", i1Type, i8PtrType, i8PtrType);
+    addBuiltinFunc("__str_ge", i1Type, i8PtrType, i8PtrType);
+    addBuiltinFunc("__str_lt", i1Type, i8PtrType, i8PtrType);
+    addBuiltinFunc("__str_le", i1Type, i8PtrType, i8PtrType);
+
+    addBuiltinFunc("__str_cat", i8PtrType, i8PtrType, i8PtrType);
 
     // represent the 'size' function of array type
     addBuiltinFunc(".size", i32Type, i32PtrType);
