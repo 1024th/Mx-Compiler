@@ -406,21 +406,60 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(PostfixExprNode node) {
     // TODO Auto-generated method stub
+    node.val = getValue(node.expr);
+    node.expr.accept(this);
+    Value val = null;
+    switch (node.op) {
+      case "++":
+        val = new BinaryInst("add", node.val, new IntConst(1, 32), nextName(), curBlock);
+        break;
+      case "--":
+        val = new BinaryInst("sub", node.val, new IntConst(1, 32), nextName(), curBlock);
+        break;
+    }
+    newStore(val, node.ptr);
   }
 
   @Override
   public void visit(PrefixExprNode node) {
     // TODO Auto-generated method stub
+    node.expr.accept(this);
+    switch (node.op) {
+      case "++":
+        node.val = new BinaryInst("add", getValue(node.expr), new IntConst(1, 32), nextName(), curBlock);
+        break;
+      case "--":
+        node.val = new BinaryInst("sub", getValue(node.expr), new IntConst(1, 32), nextName(), curBlock);
+        break;
+    }
+    newStore(node.val, node.ptr);
   }
 
   @Override
   public void visit(UnaryExprNode node) {
-    // TODO Auto-generated method stub
+    // TODO Auto-generated method stubnode.
+    node.expr.accept(this);
+    switch (node.op) {
+      case "+":
+        node.val = getValue(node.expr);
+        break;
+      case "-":
+        node.val = new BinaryInst("sub", new IntConst(0, 32), getValue(node.expr), nextName(), curBlock);
+        break;
+      case "!":
+        node.val = new BinaryInst("xor", getValue(node.expr), new BoolConst(true), nextName(), curBlock);
+        break;
+      case "~":
+        node.val = new BinaryInst("xor", getValue(node.expr), new IntConst(-1, 32), nextName(), curBlock);
+        break;
+      default:
+        break;
+    }
   }
 
   @Override
   public void visit(LambdaExprNode node) {
-    // TODO Auto-generated method stub
+    throw new IRBuildError("not implemented");
   }
 
   @Override
@@ -586,7 +625,7 @@ public class IRBuilder implements ASTVisitor {
 
   private StoreInst newStore(Value val, Value ptr) {
     if (isBool(val.type)) {
-        val = new ZextInst(val, i8Type, rename("%zext"), curBlock);
+      val = new ZextInst(val, i8Type, rename("%zext"), curBlock);
     }
     return new StoreInst(val, ptr, curBlock);
   }
