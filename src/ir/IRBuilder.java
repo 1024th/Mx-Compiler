@@ -21,7 +21,7 @@ public class IRBuilder implements ASTVisitor {
   private Scope curScope;
   private Function curFunc;
   private BasicBlock curBlock;
-  public ClassScope clsScope;
+  public ClassScope clsScope; // TODO
   public Module module = new Module();
 
   Logger logger = Logger.getLogger("IRBuilder");
@@ -62,6 +62,11 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(ClassDefNode node) {
     // TODO Auto-generated method stub
+    this.curScope = this.gScope.getClassScope(node.className);
+    for (var i : node.defs) {
+      i.accept(this);
+    }
+    this.curScope = this.curScope.parent;
   }
 
   @Override
@@ -84,6 +89,15 @@ public class IRBuilder implements ASTVisitor {
     } else {
       curFunc.retValPtr = newAlloca(funcType.retType, "%.retval.addr");
       newRet(newLoad("%.retval", curFunc.retValPtr, curFunc.exitBlock));
+    }
+    if (curFunc.isMember) { // add "this" pointer
+      var clsType = gScope.getClassType(curScope.getClassScope().className); // TODO
+      var thisType = new PointerType(clsType);
+      var ptr = newAlloca(thisType, "%this.addr");
+      curScope.addVar("this", ptr);
+      var val = new Value(thisType, "%this");
+      curFunc.addArg(val);
+      newStore(val, ptr);
     }
     for (int i = 0; i < node.params.params.size(); ++i) {
       var paramNode = node.params.params.get(i);
@@ -263,10 +277,19 @@ public class IRBuilder implements ASTVisitor {
     } else if (node.isLeftVal) { // identifier
       // TODO: class
       node.ptr = curScope.getVar(node.text, true);
+      if (node.ptr == null) { // member variable
+        var thisPtr = newLoad("%this", curScope.getVar("this", true));
+        var clsScope = curScope.getClassScope();
+        var index = clsScope.getVarIndex(node.text);
+        var clsType = gScope.getClassType(clsScope.className);
+        var type = clsType.typeList.get(index);
+        // TODO optimize
+        node.ptr = new GetElementPtrInst(rename("%"+node.text), type, thisPtr, curBlock, new IntConst(0), new IntConst(index));
+      }
     } else { // literal -> ir constant data
       var typename = node.type.typename;
       if (typename.equals("bool")) {
-        node.val = new IntConst(node.text.equals("true") ? 1 : 0, 1);
+        node.val = node.text.equals("true") ? trueConst : falseConst;
       } else if (typename.equals("int")) {
         node.val = new IntConst(Integer.parseInt(node.text), 32);
       } else if (typename.equals("null")) {
@@ -363,14 +386,24 @@ public class IRBuilder implements ASTVisitor {
       case ">>": op = "ashr"; break;
     }
     // @formatter:on
-    node.val = new BinaryInst(op, getValue(node.lhs), getValue(node.rhs), nextName(), curBlock);
+    node.val = newBinary(op, getValue(node.lhs), getValue(node.rhs));
   }
 
   @Override
   public void visit(FuncCallExprNode node) {
     node.function.accept(this);
-    var paramTypes = ((Function) node.function.val).type().paramTypes;
+    var func = (Function) node.function.val;
+    var paramTypes = func.type().paramTypes;
     var args = new ArrayList<Value>();
+    if (func.isMember) { // add "this" pointer
+      if (node.function instanceof MemberExprNode) {
+        args.add(getValue(((MemberExprNode) node.function).instance));
+      } else {
+        // in a member function, "this" is omitted
+        var arg_val = newLoad("%this", curScope.getVar("this", true));
+        args.add(arg_val);
+      }
+    }
     for (int i = 0; i < node.args.size(); ++i) {
       var arg = node.args.get(i);
       arg.accept(this);
@@ -378,7 +411,7 @@ public class IRBuilder implements ASTVisitor {
       arg_val.type = paramTypes.get(i); // null as argument
       args.add(arg_val);
     }
-    node.val = new CallInst(nextName(), (Function) node.function.val, curBlock, args);
+    node.val = new CallInst(nextName(), func, curBlock, args);
   }
 
   @Override
@@ -396,11 +429,103 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(MemberExprNode node) {
     // TODO Auto-generated method stub
+    node.instance.accept(this);
+    if (node.instance.type.isArrayType) {
+      // .size function
+      var ptr = new BitCastInst(nextName(), i32Type, getValue(node.instance), curBlock);
+      var sizePtr = new GetElementPtrInst(nextName(), i32PtrType, ptr, curBlock, new IntConst(-1));
+      node.val = newLoad(nextName(), sizePtr);
+    } else if (node.instance.type.isString()) {
+      // builtin function of string
+      node.val = gScope.getFunc("__str_" + node.member);
+    } else {
+      // class
+      var clsName = node.instance.type.typename;
+      var cls = gScope.getClassScope(clsName);
+      var clsType = gScope.getClassType(clsName);
+      if (node.isFunc) {
+        node.val = cls.getFunc(node.member);
+      } else {
+        var idx = cls.getVarIndex(node.member);
+        node.ptr = new GetElementPtrInst(rename("%" + node.member), clsType.typeList.get(idx), getValue(node.instance),
+            curBlock, new IntConst(idx));
+      }
+    }
   }
 
   @Override
   public void visit(NewExprNode node) {
     // TODO Auto-generated method stub
+    if (node.type.isArrayType) {
+      var sizeVals = new ArrayList<Value>();
+      for (var i : node.sizeExprs) {
+        i.accept(this);
+        sizeVals.add(getValue(i));
+      }
+      if (sizeVals.size() > 0)
+        node.val = newArray(getType(node.type), 0, sizeVals);
+      else
+        node.val = nullConst;
+    } else {
+      var clsName = node.type.typename;
+      var clsType = gScope.getClassType(clsName);
+      var clsScope = gScope.getClassScope(clsName);
+
+      var rawPtr = new CallInst(rename("%.new.ptr"), getMalloc(), curBlock, new IntConst(clsType.size()));
+      node.val = new BitCastInst(rename("%.new.clsPtr"), new PointerType(clsType), rawPtr, curBlock);
+
+      // call constructor
+      new CallInst(rename("%.new.ctor"), clsScope.getFunc(clsName), curBlock, node.val);
+    }
+  }
+
+  private Value newArray(BaseType type, int n, ArrayList<Value> sizeVals) {
+    var elemType = ((PointerType) type).elemType;
+    var size = sizeVals.get(n);
+    // tmp = size * sizeof(elemType)
+    var tmp = newBinary("mul", size, new IntConst(elemType.size()));
+    // mallocSize = tmp + 4
+    var mallocSize = newBinary("add", tmp, new IntConst(4), "%.new.mallocsize");
+    var rawPtr = new CallInst(rename("%.new.ptr"), getMalloc(), curBlock, mallocSize);
+    // size of the array is stored in the first 4 Bytes
+    var sizePtr = new BitCastInst(rename("%.new.sizeptr"), i32PtrType, rawPtr, curBlock);
+    newStore(size, sizePtr);
+    // arrPtr = (elemType*) (ptr + 4);
+    var tmpPtr = new GetElementPtrInst(nextName(), type, rawPtr, curBlock, new IntConst(4));
+    var arrPtr = new BitCastInst(rename("%.new.arrPtr"), type, tmpPtr, curBlock);
+
+    if (n + 1 < sizeVals.size()) {
+      // loop variable ptr = arrPtr
+      var ptrAddr = newAlloca(type, "%.new.ptr");
+      newStore(arrPtr, ptrAddr);
+      // endPtr = arrPtr + size;
+      var endPtr = new GetElementPtrInst(rename("%.new.endPtr"), type, arrPtr, curBlock, size);
+      /**
+       * {@code
+       * while (ptr < endPtr) {
+       *   *ptr = newArray(elemType, n+1, sizeVals);
+       *   ptr++;
+       * }}
+       */
+      var condBlock = newBlock("new.while.cond");
+      var bodyBlock = newBlock("new.while.body");
+      var endBlock = newBlock("new.while.end");
+
+      new BrInst(condBlock, curBlock);
+      curBlock = condBlock;
+      var ptr1 = newLoad("%.new.ptr", ptrAddr);
+      var cond = new IcmpInst("lt", ptr1, endPtr, "%.new.cond", curBlock);
+      new BrInst(cond, bodyBlock, endBlock, curBlock);
+
+      curBlock = bodyBlock;
+      var ptr2 = newLoad("%.new.ptr", ptrAddr);
+      newStore(newArray(type, n + 1, sizeVals), ptr2);
+      newStore(new GetElementPtrInst(nextName(), type, ptr2, curBlock, new IntConst(1)), ptrAddr);
+      new BrInst(condBlock, curBlock);
+
+      curBlock = endBlock;
+    }
+    return arrPtr;
   }
 
   @Override
@@ -411,10 +536,10 @@ public class IRBuilder implements ASTVisitor {
     Value val = null;
     switch (node.op) {
       case "++":
-        val = new BinaryInst("add", node.val, new IntConst(1, 32), nextName(), curBlock);
+        val = newBinary("add", node.val, new IntConst(1));
         break;
       case "--":
-        val = new BinaryInst("sub", node.val, new IntConst(1, 32), nextName(), curBlock);
+        val = newBinary("sub", node.val, new IntConst(1));
         break;
     }
     newStore(val, node.ptr);
@@ -426,10 +551,10 @@ public class IRBuilder implements ASTVisitor {
     node.expr.accept(this);
     switch (node.op) {
       case "++":
-        node.val = new BinaryInst("add", getValue(node.expr), new IntConst(1, 32), nextName(), curBlock);
+        node.val = newBinary("add", getValue(node.expr), new IntConst(1));
         break;
       case "--":
-        node.val = new BinaryInst("sub", getValue(node.expr), new IntConst(1, 32), nextName(), curBlock);
+        node.val = newBinary("sub", getValue(node.expr), new IntConst(1));
         break;
     }
     newStore(node.val, node.ptr);
@@ -444,13 +569,13 @@ public class IRBuilder implements ASTVisitor {
         node.val = getValue(node.expr);
         break;
       case "-":
-        node.val = new BinaryInst("sub", new IntConst(0, 32), getValue(node.expr), nextName(), curBlock);
+        node.val = newBinary("sub", new IntConst(0), getValue(node.expr));
         break;
       case "!":
-        node.val = new BinaryInst("xor", getValue(node.expr), new BoolConst(true), nextName(), curBlock);
+        node.val = newBinary("xor", getValue(node.expr), trueConst);
         break;
       case "~":
-        node.val = new BinaryInst("xor", getValue(node.expr), new IntConst(-1, 32), nextName(), curBlock);
+        node.val = newBinary("xor", getValue(node.expr), new IntConst(-1));
         break;
       default:
         break;
@@ -475,7 +600,7 @@ public class IRBuilder implements ASTVisitor {
       }
     }
     module.classes.add(cls);
-    gScope.addClassType(cls);
+    gScope.addClassType(node.className, cls);
   }
 
   private void declareMemberFunc(ClassDefNode node) {
@@ -537,6 +662,7 @@ public class IRBuilder implements ASTVisitor {
   private static final IntConst
     trueConst = new IntConst(1, 1),
     falseConst = new IntConst(0, 1);
+  private static final NullptrConst nullConst = new NullptrConst();
   // @formatter:on
 
   private static BaseType getElemType(String typename) {
@@ -561,7 +687,9 @@ public class IRBuilder implements ASTVisitor {
     if (type.isArrayType) {
       if (type.dimension == 1)
         return new PointerType(getElemType(type.typename));
-      return new PointerType(getType(type));
+      var elemType = type;
+      elemType.dimension--;
+      return new PointerType(getType(elemType));
     }
     if (type.isClass) {
       return new PointerType(gScope.getClassType(type.typename));
@@ -630,6 +758,14 @@ public class IRBuilder implements ASTVisitor {
     return new StoreInst(val, ptr, curBlock);
   }
 
+  private BinaryInst newBinary(String op, Value op1, Value op2, String name) {
+    return new BinaryInst(op, op1, op2, rename(name), curBlock);
+  }
+
+  private BinaryInst newBinary(String op, Value op1, Value op2) {
+    return newBinary(op, op1, op2, nextName());
+  }
+
   private GetElementPtrInst newGEP(String name, BaseType retType, Value ptr, Value... idx) {
     return new GetElementPtrInst(rename(name), retType, ptr, curBlock, idx);
   }
@@ -648,7 +784,7 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private BasicBlock newBlock(String name) {
-    return new BasicBlock(name, curFunc);
+    return new BasicBlock(rename(name), curFunc); // TODO: "%" + name?
   }
 
   private Function getStrMethod(String op) {
@@ -695,6 +831,10 @@ public class IRBuilder implements ASTVisitor {
 
     // represent the 'size' function of array type
     addBuiltinFunc(".size", i32Type, i32PtrType);
+  }
+
+  private Function getMalloc() {
+    return this.gScope.getFunc("__malloc");
   }
 
   private void addBuiltinFunc(String funcName, BaseType returnType, BaseType... paramTypes) {

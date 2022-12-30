@@ -64,8 +64,8 @@ public class GlobalScope extends Scope {
     classScopes.put(cls.className, cls);
   }
 
-  public void addClassType(StructType cls) {
-    this.classTypes.put(cls.name, cls);
+  public void addClassType(String name, StructType cls) {
+    this.classTypes.put(name, cls);
   }
 
   public StructType getClassType(String name) {

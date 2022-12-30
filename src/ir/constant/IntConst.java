@@ -10,6 +10,10 @@ public class IntConst extends Constant {
     this.val = val;
   }
 
+  public IntConst(int val) {
+    this(val, 32);
+  }
+
   public String name() {
     return "%d".formatted(this.val);
   }
