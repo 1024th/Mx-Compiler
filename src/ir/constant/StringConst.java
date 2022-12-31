@@ -2,17 +2,20 @@ package ir.constant;
 
 import ir.type.ArrayType;
 import ir.type.IntType;
+import ir.type.PointerType;
 
 public class StringConst extends Constant {
   public String val;
 
-  public StringConst(String val) {
-    super(new ArrayType(new IntType(8), val.length() + 1), null);
+  public StringConst(String name, String val) {
+    super(new PointerType(new ArrayType(new IntType(8), val.length() + 1)), name);
     this.val = val + "\0";
   }
 
-  public String name() {
-    return "\"%s\"".formatted(this.escaped());
+  @Override
+  public String toString() {
+    return "%s = private unnamed_addr constant %s c\"%s\"".formatted(
+        this.name(), ((PointerType) this.type).elemType, this.escaped());
   }
 
   public String escaped() {

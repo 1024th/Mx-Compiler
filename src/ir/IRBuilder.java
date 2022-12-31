@@ -82,14 +82,15 @@ public class IRBuilder implements ASTVisitor {
     curFunc.entryBlock = newBlock("entry");
     curFunc.exitBlock = newBlock("exit");
     curScope = node.scope;
+    curBlock = curFunc.exitBlock;
     var funcType = curFunc.type();
-    curBlock = curFunc.entryBlock;
     if (funcType.retType instanceof VoidType) {
       newRet();
     } else {
       curFunc.retValPtr = newAlloca(funcType.retType, "%.retval.addr");
       newRet(newLoad("%.retval", curFunc.retValPtr, curFunc.exitBlock));
     }
+    curBlock = curFunc.entryBlock;
     if (curFunc.isMember) { // add "this" pointer
       var clsType = gScope.getClassType(curScope.getClassScope().className); // TODO
       var thisType = new PointerType(clsType);
@@ -104,7 +105,7 @@ public class IRBuilder implements ASTVisitor {
       var type = funcType.paramTypes.get(i);
       var ptr = newAlloca(type, "%" + paramNode.name + ".addr");
       curScope.addVar(paramNode.name, ptr);
-      var val = new Value(type, "%" + paramNode.name);
+      var val = new Value(type, rename("%" + paramNode.name));
       curFunc.addArg(val);
       newStore(val, ptr);
     }
@@ -284,8 +285,10 @@ public class IRBuilder implements ASTVisitor {
         var clsType = gScope.getClassType(clsScope.className);
         var type = clsType.typeList.get(index);
         // TODO optimize
-        node.ptr = new GetElementPtrInst(rename("%"+node.text), type, thisPtr, curBlock, new IntConst(0), new IntConst(index));
+        node.ptr = new GetElementPtrInst(rename("%" + node.text), type, thisPtr, curBlock, new IntConst(0),
+            new IntConst(index));
       }
+      node.val = newLoad("%" + node.text, node.ptr);
     } else { // literal -> ir constant data
       var typename = node.type.typename;
       if (typename.equals("bool")) {
@@ -295,7 +298,9 @@ public class IRBuilder implements ASTVisitor {
       } else if (typename.equals("null")) {
         node.val = new NullptrConst();
       } else if (typename.equals("string")) {
-        node.val = new StringConst(node.unescape());
+        var s = getStringConst(node.unescape());
+        node.val = new GetElementPtrInst(nextName(), i8PtrType, s,
+            curBlock, new IntConst(0), new IntConst(0));
       } else {
         throw new IRBuildError("unknown type when visiting AtomExprNode");
       }
@@ -370,6 +375,7 @@ public class IRBuilder implements ASTVisitor {
     // @formatter:on
     if (op != null) {
       node.val = new IcmpInst(op, getValue(node.lhs), getValue(node.rhs), nextName(), curBlock);
+      return;
     }
 
     // @formatter:off
@@ -835,6 +841,16 @@ public class IRBuilder implements ASTVisitor {
 
   private Function getMalloc() {
     return this.gScope.getFunc("__malloc");
+  }
+
+  private StringConst getStringConst(String val) {
+    for (var s : module.stringConsts) {
+      if (s.val.equals(val))
+        return s;
+    }
+    var s = new StringConst(rename("@.str"), val);
+    module.stringConsts.add(s);
+    return s;
   }
 
   private void addBuiltinFunc(String funcName, BaseType returnType, BaseType... paramTypes) {

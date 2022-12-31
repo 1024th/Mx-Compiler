@@ -20,6 +20,6 @@ public class StructType extends BaseType {
 
   @Override
   public String toString() {
-    return "%class." + this.name;
+    return this.name;
   }
 }
