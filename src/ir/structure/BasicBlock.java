@@ -25,10 +25,13 @@ public class BasicBlock extends Value {
   }
 
   public void addInst(BaseInst inst) {
-    if (inst instanceof AllocaInst)
+    if (inst instanceof AllocaInst) {
       addAlloca((AllocaInst) inst);
-    else
-      insts.add(inst);
+      return;
+    }
+    if (this.terminated)
+      return;
+    insts.add(inst);
     if (inst.isTerminator())
       this.terminated = true;
   }

@@ -242,9 +242,12 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ReturnStmtNode node) {
-    node.expr.accept(this);
-    var val = getValue(node.expr);
-    newStore(val, curFunc.retValPtr);
+    if (node.expr != null) {
+      node.expr.accept(this);
+      var val = getValue(node.expr);
+      newStore(val, curFunc.retValPtr);
+    }
+    new BrInst(curFunc.exitBlock, curBlock);
   }
 
   @Override
@@ -768,7 +771,8 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private boolean isBool(BaseType type) {
-    if (!(type instanceof IntType)) return false;
+    if (!(type instanceof IntType))
+      return false;
     var t = (IntType) type;
     return t.bitWidth == 1 || t.isBool;
   }
