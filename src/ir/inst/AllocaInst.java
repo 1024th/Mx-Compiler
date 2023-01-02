@@ -7,8 +7,6 @@ import ir.type.PointerType;
 public class AllocaInst extends BaseInst {
   BaseType elemType;
 
-  public boolean isBool = false;
-
   public AllocaInst(BaseType type, String name, BasicBlock parent) {
     super(new PointerType(type), name, parent);
     this.elemType = type;

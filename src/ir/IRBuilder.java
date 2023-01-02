@@ -438,7 +438,8 @@ public class IRBuilder implements ASTVisitor {
   public void visit(IndexExprNode node) {
     node.array.accept(this);
     node.index.accept(this);
-    node.ptr = newGEP("%arrayidx", node.array.ptr.type, node.array.ptr, node.index.val);
+    var arr = getValue(node.array);
+    node.ptr = newGEP("%arrayidx", arr.type, arr, getValue(node.index));
   }
 
   @Override
@@ -506,7 +507,7 @@ public class IRBuilder implements ASTVisitor {
     var sizePtr = new BitCastInst(rename("%.new.sizeptr"), i32PtrType, rawPtr, curBlock);
     newStore(size, sizePtr);
     // arrPtr = (elemType*) (ptr + 4);
-    var tmpPtr = new GetElementPtrInst(nextName(), type, rawPtr, curBlock, new IntConst(4));
+    var tmpPtr = new GetElementPtrInst(nextName(), i8PtrType, rawPtr, curBlock, new IntConst(4));
     var arrPtr = new BitCastInst(rename("%.new.arrPtr"), type, tmpPtr, curBlock);
 
     if (n + 1 < sizeVals.size()) {
@@ -654,9 +655,7 @@ public class IRBuilder implements ASTVisitor {
   private void declareGlobalVar(SingleVarDefNode node) {
     var name = rename("@" + node.name);
     var type = getType(node.type);
-    var v = new GlobalVariable(type, name);
-    if (isBool(type))
-      v.isBool = true;
+    var v = newGlobalVar(type, name);
     module.globalVars.add(v);
     gScope.globalVars.put(node.name, v);
   }
@@ -695,6 +694,7 @@ public class IRBuilder implements ASTVisitor {
   private static final BaseType
     i32Type = new IntType(32),
     i8Type  = new IntType(8),
+    i8BoolType  = new IntType(8, true),
     i1Type  = new IntType(1),
     i8PtrType = new PointerType(i8Type),
     i32PtrType = new PointerType(i32Type),
@@ -768,30 +768,30 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private boolean isBool(BaseType type) {
-    return type instanceof IntType && ((IntType) type).bitWidth == 1;
+    if (!(type instanceof IntType)) return false;
+    var t = (IntType) type;
+    return t.bitWidth == 1 || t.isBool;
   }
 
   private AllocaInst newAlloca(BaseType type, String name) {
     // bool (i1), alloca i8
     if (isBool(type)) {
-      var inst = new AllocaInst(i8Type, rename(name), curFunc.entryBlock);
-      inst.isBool = true;
-      return inst;
+      return new AllocaInst(i8BoolType, rename(name), curFunc.entryBlock);
     }
     return new AllocaInst(type, rename(name), curFunc.entryBlock);
   }
 
-  private boolean isBool(Value val) {
-    if (val instanceof AllocaInst)
-      return ((AllocaInst) val).isBool;
-    if (val instanceof GlobalVariable)
-      return ((GlobalVariable) val).isBool;
-    throw new IRBuildError("wrong type");
+  private GlobalVariable newGlobalVar(BaseType type, String name) {
+    // bool (i1), alloca i8
+    if (isBool(type)) {
+      return new GlobalVariable(i8BoolType, rename(name));
+    }
+    return new GlobalVariable(type, rename(name));
   }
 
   private Value newLoad(String name, Value ptr, BasicBlock parent) {
     var loadInst = new LoadInst(rename(name), ptr, parent);
-    if (isBool(ptr)) {
+    if (isBool(((PointerType) ptr.type).elemType)) {
       return newTrunc(loadInst, i1Type, name + ".tobool");
     }
     return loadInst;
