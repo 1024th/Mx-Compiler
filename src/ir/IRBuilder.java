@@ -21,7 +21,12 @@ public class IRBuilder implements ASTVisitor {
   private Scope curScope;
   private Function curFunc;
   private BasicBlock curBlock;
-  public ClassScope clsScope; // TODO
+
+  // for class
+  private ClassScope clsScope;
+  private String clsName;
+  private StructType clsType;
+
   public Module module = new Module();
 
   Logger logger = Logger.getLogger("IRBuilder");
@@ -68,7 +73,10 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ClassDefNode node) {
-    this.curScope = this.gScope.getClassScope(node.className);
+    clsName = node.className;
+    clsScope = gScope.getClassScope(clsName);
+    clsType = gScope.getClassType(clsName);
+    curScope = clsScope;
     boolean hasCtor = false;
     for (var i : node.defs) {
       if (i instanceof VarDefNode)
@@ -80,7 +88,7 @@ public class IRBuilder implements ASTVisitor {
 
     if (!hasCtor) {
       // add definition of default constructor
-      curFunc = ((ClassScope) curScope).getFunc(node.className);
+      curFunc = clsScope.getFunc(node.className);
       curFunc.entryBlock = newBlock("entry");
       curFunc.exitBlock = newBlock("exit");
       // curScope = new FuncScope(null, false, curScope);
@@ -88,10 +96,10 @@ public class IRBuilder implements ASTVisitor {
       newRet(); // return void
       curBlock = curFunc.entryBlock;
       if (curFunc.isMember) { // add "this" pointer
-        var thisType = new PointerType(gScope.getClassType(node.className));
+        var thisType = new PointerType(clsType);
         // var ptr = newAlloca(thisType, "%this.addr");
         // curScope.addVar("this", ptr);
-        var val = new Value(thisType, "%this");
+        var val = new Value(thisType, rename("%this"));
         curFunc.addArg(val);
         // newStore(val, ptr);
       }
@@ -100,13 +108,20 @@ public class IRBuilder implements ASTVisitor {
       // curScope = curScope.parent;
     }
 
-    this.curScope = this.curScope.parent;
+    curScope = curScope.parent;
+    exitClass();
+  }
+
+  private void exitClass() {
+    clsName = null;
+    clsScope = null;
+    clsType = null;
   }
 
   @Override
   public void visit(ClassCtorDefNode node) {
     // TODO Auto-generated method stub
-    curFunc = gScope.getFunc(node.name);
+    curFunc = clsScope.getFunc(node.name);
     curFunc.entryBlock = newBlock("entry");
     curFunc.exitBlock = newBlock("exit");
     curScope = node.scope;
@@ -114,11 +129,10 @@ public class IRBuilder implements ASTVisitor {
     newRet(); // return void
     curBlock = curFunc.entryBlock;
     if (curFunc.isMember) { // add "this" pointer
-      var clsType = gScope.getClassType(node.name); // TODO
       var thisType = new PointerType(clsType);
       var ptr = newAlloca(thisType, "%this.addr");
       curScope.addVar("this", ptr);
-      var val = new Value(thisType, "%this");
+      var val = new Value(thisType, rename("%this"));
       curFunc.addArg(val);
       newStore(val, ptr);
     }
@@ -130,9 +144,10 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(FuncDefNode node) {
-    // TODO Auto-generated method stub
-    // TODO member function
-    curFunc = gScope.getFunc(node.funcName);
+    if (clsScope != null)
+      curFunc = clsScope.getFunc(node.funcName);
+    else
+      curFunc = gScope.getFunc(node.funcName);
     curFunc.entryBlock = newBlock("entry");
     curFunc.exitBlock = newBlock("exit");
     curScope = node.scope;
@@ -146,11 +161,10 @@ public class IRBuilder implements ASTVisitor {
     }
     curBlock = curFunc.entryBlock;
     if (curFunc.isMember) { // add "this" pointer
-      var clsType = gScope.getClassType(curScope.getClassScope().className); // TODO
       var thisType = new PointerType(clsType);
       var ptr = newAlloca(thisType, "%this.addr");
       curScope.addVar("this", ptr);
-      var val = new Value(thisType, "%this");
+      var val = new Value(thisType, rename("%this"));
       curFunc.addArg(val);
       newStore(val, ptr);
     }
@@ -336,17 +350,14 @@ public class IRBuilder implements ASTVisitor {
     if (node.isFunc) {
       node.val = gScope.getFunc(node.text);
     } else if (node.isLeftVal) { // identifier
-      // TODO: class
       node.ptr = curScope.getVar(node.text, true);
       if (node.ptr == null) { // member variable
         var thisPtr = newLoad("%this", curScope.getVar("this", true));
-        var clsScope = curScope.getClassScope();
         var index = clsScope.getVarIndex(node.text);
-        var clsType = gScope.getClassType(clsScope.className);
         var type = clsType.typeList.get(index);
-        // TODO optimize
-        node.ptr = new GetElementPtrInst(rename("%" + node.text), type, thisPtr, curBlock, new IntConst(0),
-            new IntConst(index));
+        node.ptr = new GetElementPtrInst(rename("%" + node.text),
+            new PointerType(type), thisPtr, curBlock,
+            new IntConst(0), new IntConst(index));
       }
       // node.val = newLoad("%" + node.text, node.ptr);
     } else { // literal -> ir constant data
@@ -680,23 +691,25 @@ public class IRBuilder implements ASTVisitor {
     var cls = gScope.getClassType(node.className);
     for (var i : node.defs) {
       if (i instanceof VarDefNode) {
-        cls.typeList.add(getType(((VarDefNode) i).type));
+        for (var j : ((VarDefNode) i).vars)
+          cls.typeList.add(getType(((SingleVarDefNode) j).type));
       }
     }
   }
 
   private void declareMemberFunc(ClassDefNode node) {
-    var cls = gScope.getClassType(node.className);
-    var clsScope = gScope.getClassScope(node.className);
+    clsName = node.className;
+    clsType = gScope.getClassType(clsName);
+    clsScope = gScope.getClassScope(clsName);
     for (var i : node.defs) {
       if (i instanceof FuncDefNode) {
         var funcDef = (FuncDefNode) i;
         var funcType = new FuncType(getType(funcDef.returnType));
-        funcType.paramTypes.add(new PointerType(cls)); // "this" pointer
+        funcType.paramTypes.add(new PointerType(clsType)); // "this" pointer
         for (var j : funcDef.params.params) {
           funcType.paramTypes.add(getType(j.type));
         }
-        var funcName = "@%s.%s".formatted(node.className, funcDef.funcName);
+        var funcName = "@%s.%s".formatted(clsName, funcDef.funcName);
         var func = new Function(funcType, funcName, true);
         module.funcs.add(func);
         // TODO
@@ -707,11 +720,13 @@ public class IRBuilder implements ASTVisitor {
 
     // constructor
     var funcType = new FuncType(voidType);
-    funcType.paramTypes.add(new PointerType(cls)); // "this" pointer
-    var funcName = "@%s.%s".formatted(node.className, node.className);
+    funcType.paramTypes.add(new PointerType(clsType)); // "this" pointer
+    var funcName = "@%s.%s".formatted(clsName, clsName);
     var func = new Function(funcType, funcName, true);
     module.funcs.add(func);
-    clsScope.addFunc(node.className, func);
+    clsScope.addFunc(clsName, func);
+
+    exitClass();
   }
 
   private void declareFunc(FuncDefNode node) {

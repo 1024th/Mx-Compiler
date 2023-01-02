@@ -86,9 +86,7 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(ClassCtorDefNode node) {
     node.scope = new FuncScope(new TypeNode("void", false, null), false, this.curScope);
     this.curScope = node.scope;
-    for (var i : node.body.stmts) {
-      i.accept(this);
-    }
+    node.body.accept(this);
     this.curScope = this.curScope.parent;
   }
 
