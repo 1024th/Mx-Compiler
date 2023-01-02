@@ -7,6 +7,8 @@ import ir.type.PointerType;
 public class GlobalVariable extends Constant {
   public Value initVal;
 
+  public boolean isBool = false;
+
   public GlobalVariable(BaseType type, String name) {
     super(new PointerType(type), name);
   }
