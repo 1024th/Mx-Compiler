@@ -37,7 +37,11 @@ public class IRBuilder implements ASTVisitor {
     // declarations
     for (var i : node.defs) {
       if (i instanceof ClassDefNode)
-        declareClass((ClassDefNode) i);
+        declareClassType((ClassDefNode) i);
+    }
+    for (var i : node.defs) {
+      if (i instanceof ClassDefNode)
+        defineClassType((ClassDefNode) i);
       if (i instanceof VarDefNode)
         for (var j : ((VarDefNode) i).vars)
           declareGlobalVar((SingleVarDefNode) j);
@@ -64,17 +68,64 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ClassDefNode node) {
-    // TODO Auto-generated method stub
     this.curScope = this.gScope.getClassScope(node.className);
+    boolean hasCtor = false;
     for (var i : node.defs) {
+      if (i instanceof VarDefNode)
+        continue;
+      if (i instanceof ClassCtorDefNode)
+        hasCtor = true;
       i.accept(this);
     }
+
+    if (!hasCtor) {
+      // add definition of default constructor
+      curFunc = ((ClassScope) curScope).getFunc(node.className);
+      curFunc.entryBlock = newBlock("entry");
+      curFunc.exitBlock = newBlock("exit");
+      // curScope = new FuncScope(null, false, curScope);
+      curBlock = curFunc.exitBlock;
+      newRet(); // return void
+      curBlock = curFunc.entryBlock;
+      if (curFunc.isMember) { // add "this" pointer
+        var thisType = new PointerType(gScope.getClassType(node.className));
+        // var ptr = newAlloca(thisType, "%this.addr");
+        // curScope.addVar("this", ptr);
+        var val = new Value(thisType, "%this");
+        curFunc.addArg(val);
+        // newStore(val, ptr);
+      }
+      if (!curBlock.terminated)
+        new BrInst(curFunc.exitBlock, curBlock);
+      // curScope = curScope.parent;
+    }
+
     this.curScope = this.curScope.parent;
   }
 
   @Override
   public void visit(ClassCtorDefNode node) {
     // TODO Auto-generated method stub
+    curFunc = gScope.getFunc(node.name);
+    curFunc.entryBlock = newBlock("entry");
+    curFunc.exitBlock = newBlock("exit");
+    curScope = node.scope;
+    curBlock = curFunc.exitBlock;
+    newRet(); // return void
+    curBlock = curFunc.entryBlock;
+    if (curFunc.isMember) { // add "this" pointer
+      var clsType = gScope.getClassType(node.name); // TODO
+      var thisType = new PointerType(clsType);
+      var ptr = newAlloca(thisType, "%this.addr");
+      curScope.addVar("this", ptr);
+      var val = new Value(thisType, "%this");
+      curFunc.addArg(val);
+      newStore(val, ptr);
+    }
+    node.body.accept(this);
+    if (!curBlock.terminated)
+      new BrInst(curFunc.exitBlock, curBlock);
+    curScope = curScope.parent;
   }
 
   @Override
@@ -408,6 +459,11 @@ public class IRBuilder implements ASTVisitor {
   @Override
   public void visit(FuncCallExprNode node) {
     node.function.accept(this);
+    if (!(node.function.val instanceof Function)) {
+      // .size() function is already inlined in visit(MemberExprNode)
+      node.val = node.function.val;
+      return;
+    }
     var func = (Function) node.function.val;
     var paramTypes = func.type().paramTypes;
     var args = new ArrayList<Value>();
@@ -466,8 +522,10 @@ public class IRBuilder implements ASTVisitor {
         node.val = cls.getFunc(node.member);
       } else {
         var idx = cls.getVarIndex(node.member);
-        node.ptr = new GetElementPtrInst(rename("%" + node.member), clsType.typeList.get(idx), getValue(node.instance),
-            curBlock, new IntConst(idx));
+        node.ptr = new GetElementPtrInst(rename("%" + node.member),
+            new PointerType(clsType.typeList.get(idx)),
+            getValue(node.instance),
+            curBlock, new IntConst(0), new IntConst(idx));
       }
     }
   }
@@ -511,7 +569,7 @@ public class IRBuilder implements ASTVisitor {
     newStore(size, sizePtr);
     // arrPtr = (elemType*) (ptr + 4);
     var tmpPtr = new GetElementPtrInst(nextName(), i8PtrType, rawPtr, curBlock, new IntConst(4));
-    var arrPtr = new BitCastInst(rename("%.new.arrPtr"), type, tmpPtr, curBlock);
+    var arrPtr = new BitCastInst(rename("%.new.arrPtr"), getMemType(type), tmpPtr, curBlock);
 
     if (n + 1 < sizeVals.size()) {
       // loop variable ptr = arrPtr
@@ -533,12 +591,12 @@ public class IRBuilder implements ASTVisitor {
       new BrInst(condBlock, curBlock);
       curBlock = condBlock;
       var ptr1 = newLoad("%.new.ptr", ptrAddr);
-      var cond = new IcmpInst("lt", ptr1, endPtr, "%.new.cond", curBlock);
+      var cond = new IcmpInst("ne", ptr1, endPtr, rename("%.new.cond"), curBlock);
       new BrInst(cond, bodyBlock, endBlock, curBlock);
 
       curBlock = bodyBlock;
       var ptr2 = newLoad("%.new.ptr", ptrAddr);
-      newStore(newArray(type, n + 1, sizeVals), ptr2);
+      newStore(newArray(((PointerType) type).elemType, n + 1, sizeVals), ptr2);
       newStore(new GetElementPtrInst(nextName(), type, ptr2, curBlock, new IntConst(1)), ptrAddr);
       new BrInst(condBlock, curBlock);
 
@@ -612,15 +670,19 @@ public class IRBuilder implements ASTVisitor {
     // TODO Auto-generated method stub
   }
 
-  private void declareClass(ClassDefNode node) {
+  private void declareClassType(ClassDefNode node) {
     StructType cls = new StructType("%class." + node.className);
+    module.classes.add(cls);
+    gScope.addClassType(node.className, cls);
+  }
+
+  private void defineClassType(ClassDefNode node) {
+    var cls = gScope.getClassType(node.className);
     for (var i : node.defs) {
       if (i instanceof VarDefNode) {
         cls.typeList.add(getType(((VarDefNode) i).type));
       }
     }
-    module.classes.add(cls);
-    gScope.addClassType(node.className, cls);
   }
 
   private void declareMemberFunc(ClassDefNode node) {
@@ -642,6 +704,14 @@ public class IRBuilder implements ASTVisitor {
         clsScope.addFunc(funcDef.funcName, func);
       }
     }
+
+    // constructor
+    var funcType = new FuncType(voidType);
+    funcType.paramTypes.add(new PointerType(cls)); // "this" pointer
+    var funcName = "@%s.%s".formatted(node.className, node.className);
+    var func = new Function(funcType, funcName, true);
+    module.funcs.add(func);
+    clsScope.addFunc(node.className, func);
   }
 
   private void declareFunc(FuncDefNode node) {
@@ -708,7 +778,7 @@ public class IRBuilder implements ASTVisitor {
   private static final NullptrConst nullConst = new NullptrConst();
   // @formatter:on
 
-  private static BaseType getElemType(String typename) {
+  private BaseType getElemType(String typename) {
     if (typename.equals("int")) {
       return i32Type;
     } else if (typename.equals("bool")) {
@@ -728,10 +798,10 @@ public class IRBuilder implements ASTVisitor {
 
   private BaseType getType(TypeNode type) {
     if (type.isArrayType) {
-      if (type.dimension == 1)
-        return new PointerType(getElemType(type.typename));
       var elemType = type;
       elemType.dimension--;
+      if (elemType.dimension == 0)
+        elemType.isArrayType = false;
       return new PointerType(getType(elemType));
     }
     if (type.isString())
@@ -777,20 +847,25 @@ public class IRBuilder implements ASTVisitor {
     return t.bitWidth == 1 || t.isBool;
   }
 
+  /**
+   * bool type, i.e. i1 type, is stored as i8 type in memory.
+   * i1 -> i8 with isBool=true
+   * i1* -> (i8 with isBool=true)*
+   */
+  private BaseType getMemType(BaseType type) {
+    if (isBool(type))
+      return i8BoolType;
+    if (type instanceof PointerType)
+      return new PointerType(getMemType(((PointerType) type).elemType));
+    return type;
+  }
+
   private AllocaInst newAlloca(BaseType type, String name) {
-    // bool (i1), alloca i8
-    if (isBool(type)) {
-      return new AllocaInst(i8BoolType, rename(name), curFunc.entryBlock);
-    }
-    return new AllocaInst(type, rename(name), curFunc.entryBlock);
+    return new AllocaInst(getMemType(type), rename(name), curFunc.entryBlock);
   }
 
   private GlobalVariable newGlobalVar(BaseType type, String name) {
-    // bool (i1), alloca i8
-    if (isBool(type)) {
-      return new GlobalVariable(i8BoolType, rename(name));
-    }
-    return new GlobalVariable(type, rename(name));
+    return new GlobalVariable(getMemType(type), rename(name));
   }
 
   private Value newLoad(String name, Value ptr, BasicBlock parent) {
