@@ -160,7 +160,9 @@ public class IRBuilder implements ASTVisitor {
       newRet(newLoad("%.retval", curFunc.retValPtr, curFunc.exitBlock));
     }
     curBlock = curFunc.entryBlock;
+    int offset = 0;
     if (curFunc.isMember) { // add "this" pointer
+      offset = 1;
       var thisType = new PointerType(clsType);
       var ptr = newAlloca(thisType, "%this.addr");
       curScope.addVar("this", ptr);
@@ -170,7 +172,7 @@ public class IRBuilder implements ASTVisitor {
     }
     for (int i = 0; i < node.params.params.size(); ++i) {
       var paramNode = node.params.params.get(i);
-      var type = funcType.paramTypes.get(i);
+      var type = funcType.paramTypes.get(i + offset);
       var ptr = newAlloca(type, "%" + paramNode.name + ".addr");
       curScope.addVar(paramNode.name, ptr);
       var val = new Value(type, rename("%" + paramNode.name));
@@ -348,7 +350,12 @@ public class IRBuilder implements ASTVisitor {
   public void visit(AtomExprNode node) {
     // TODO Auto-generated method stub
     if (node.isFunc) {
-      node.val = gScope.getFunc(node.text);
+      if (clsScope != null) {
+        node.val = clsScope.getFunc(node.text);
+      }
+      if (node.val == null) {
+        node.val = gScope.getFunc(node.text);
+      }
     } else if (node.isLeftVal) { // identifier
       node.ptr = curScope.getVar(node.text, true);
       if (node.ptr == null) { // member variable
@@ -813,7 +820,7 @@ public class IRBuilder implements ASTVisitor {
 
   private BaseType getType(TypeNode type) {
     if (type.isArrayType) {
-      var elemType = type;
+      var elemType = new TypeNode(type);
       elemType.dimension--;
       if (elemType.dimension == 0)
         elemType.isArrayType = false;
