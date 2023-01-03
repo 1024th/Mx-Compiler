@@ -367,6 +367,8 @@ public class IRBuilder implements ASTVisitor {
             new IntConst(0), new IntConst(index));
       }
       // node.val = newLoad("%" + node.text, node.ptr);
+    } else if (node.text.equals("this")) {
+      node.ptr = curScope.getVar("this", true);
     } else { // literal -> ir constant data
       var typename = node.type.typename;
       if (typename.equals("bool")) {
@@ -380,7 +382,7 @@ public class IRBuilder implements ASTVisitor {
         node.val = new GetElementPtrInst(nextName(), i8PtrType, s,
             curBlock, new IntConst(0), new IntConst(0));
       } else {
-        throw new IRBuildError("unknown type when visiting AtomExprNode");
+        throw new IRBuildError("unknown type when visiting AtomExprNode@%s".formatted(node.pos));
       }
     }
   }
