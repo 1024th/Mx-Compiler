@@ -1,7 +1,8 @@
 package ir.inst;
 
+import ir.BasicBlock;
+import ir.IRVisitor;
 import ir.Value;
-import ir.structure.BasicBlock;
 import ir.type.BaseType;
 import ir.type.PointerType;
 import utils.TextUtils;
@@ -20,5 +21,10 @@ public class GetElementPtrInst extends BaseInst {
     return "%s = getelementptr inbounds %s, %s".formatted(
         name(), ((PointerType) ptr.type).elemType,
         TextUtils.join(operands, x -> x.typedName()));
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

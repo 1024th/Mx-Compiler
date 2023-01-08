@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 
 import ast.FuncDefNode;
+import ir.Function;
 import ir.Value;
 import ir.constant.GlobalVariable;
-import ir.structure.Function;
 import ir.type.StructType;
 import utils.error.SemanticError;
 

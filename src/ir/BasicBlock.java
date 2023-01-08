@@ -1,8 +1,7 @@
-package ir.structure;
+package ir;
 
 import java.util.ArrayList;
 
-import ir.Value;
 import ir.inst.AllocaInst;
 import ir.inst.BaseInst;
 import ir.type.LabelType;
@@ -50,5 +49,9 @@ public class BasicBlock extends Value {
   @Override
   public String name() {
     return "%" + this.name;
+  }
+
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

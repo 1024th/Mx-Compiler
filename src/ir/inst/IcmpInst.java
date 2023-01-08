@@ -1,7 +1,8 @@
 package ir.inst;
 
+import ir.BasicBlock;
+import ir.IRVisitor;
 import ir.Value;
-import ir.structure.BasicBlock;
 import ir.type.IntType;
 
 public class IcmpInst extends BaseInst {
@@ -19,5 +20,10 @@ public class IcmpInst extends BaseInst {
     var op1 = getOperand(0);
     var op2 = getOperand(1);
     return "%s = icmp %s %s %s, %s".formatted(name(), op, op1.type, op1.name(), op2.name());
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

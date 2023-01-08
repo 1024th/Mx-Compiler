@@ -1,4 +1,4 @@
-package ir.structure;
+package ir;
 
 import java.util.ArrayList;
 
@@ -13,4 +13,8 @@ public class Module {
   public ArrayList<StructType> classes = new ArrayList<>();
 
   public ArrayList<Function> funcDecls = new ArrayList<>();
+
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
+  }
 }

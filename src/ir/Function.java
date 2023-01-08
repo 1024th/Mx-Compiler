@@ -1,8 +1,7 @@
-package ir.structure;
+package ir;
 
 import java.util.ArrayList;
 
-import ir.Value;
 import ir.constant.Constant;
 import ir.type.FuncType;
 
@@ -29,5 +28,9 @@ public class Function extends Constant {
 
   public Value getArg(int i) {
     return this.getOperand(i);
+  }
+
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

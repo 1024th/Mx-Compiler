@@ -2,9 +2,6 @@ package ir;
 
 import java.io.PrintStream;
 
-import ir.structure.BasicBlock;
-import ir.structure.Function;
-import ir.structure.Module;
 import utils.TextUtils;
 
 public class IRPrinter {

@@ -1,7 +1,8 @@
 package ir.inst;
 
+import ir.BasicBlock;
+import ir.IRVisitor;
 import ir.Value;
-import ir.structure.BasicBlock;
 import ir.type.VoidType;
 
 public class BrInst extends BaseInst {
@@ -32,5 +33,10 @@ public class BrInst extends BaseInst {
   @Override
   public boolean isTerminator() {
     return true;
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

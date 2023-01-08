@@ -1,7 +1,8 @@
 package ir.inst;
 
+import ir.BasicBlock;
+import ir.IRVisitor;
 import ir.Value;
-import ir.structure.BasicBlock;
 
 public class BinaryInst extends BaseInst {
   public String op;
@@ -18,5 +19,10 @@ public class BinaryInst extends BaseInst {
     var op1 = getOperand(0);
     var op2 = getOperand(1);
     return "%s = %s %s %s, %s".formatted(name(), op, type, op1.name(), op2.name());
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

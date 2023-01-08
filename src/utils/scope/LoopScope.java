@@ -1,6 +1,6 @@
 package utils.scope;
 
-import ir.structure.BasicBlock;
+import ir.BasicBlock;
 
 public class LoopScope extends Scope {
   public BasicBlock continueBlock, breakBlock;

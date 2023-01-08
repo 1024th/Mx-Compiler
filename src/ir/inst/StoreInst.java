@@ -1,7 +1,8 @@
 package ir.inst;
 
+import ir.BasicBlock;
+import ir.IRVisitor;
 import ir.Value;
-import ir.structure.BasicBlock;
 import ir.type.PointerType;
 
 public class StoreInst extends BaseInst {
@@ -18,5 +19,10 @@ public class StoreInst extends BaseInst {
     var val = this.getOperand(0);
     var ptr = this.getOperand(1);
     return "store %s %s, %s, align %d".formatted(this.type, val.name(), ptr.typedName(), val.type.size());
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

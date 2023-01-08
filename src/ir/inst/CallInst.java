@@ -2,9 +2,10 @@ package ir.inst;
 
 import java.util.ArrayList;
 
+import ir.BasicBlock;
+import ir.Function;
+import ir.IRVisitor;
 import ir.Value;
-import ir.structure.BasicBlock;
-import ir.structure.Function;
 import ir.type.VoidType;
 
 public class CallInst extends BaseInst {
@@ -43,5 +44,10 @@ public class CallInst extends BaseInst {
     }
     s += ")";
     return s;
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

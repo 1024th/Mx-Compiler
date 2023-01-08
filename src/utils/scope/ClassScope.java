@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 import ast.ClassCtorDefNode;
 import ast.FuncDefNode;
 import ast.stmt.SingleVarDefNode;
-import ir.structure.Function;
+import ir.Function;
 import utils.Position;
 import utils.error.SemanticError;
 
