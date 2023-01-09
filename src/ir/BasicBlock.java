@@ -24,8 +24,8 @@ public class BasicBlock extends Value {
   }
 
   public void addInst(BaseInst inst) {
-    if (inst instanceof AllocaInst) {
-      addAlloca((AllocaInst) inst);
+    if (inst instanceof AllocaInst i) {
+      addAlloca(i);
       return;
     }
     if (this.terminated)

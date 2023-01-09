@@ -38,21 +38,21 @@ public class IRBuilder implements ASTVisitor {
   public void visit(ProgramNode node) {
     // declarations
     for (var i : node.defs) {
-      if (i instanceof ClassDefNode)
-        declareClassType((ClassDefNode) i);
+      if (i instanceof ClassDefNode cls)
+        declareClassType(cls);
     }
     for (var i : node.defs) {
-      if (i instanceof ClassDefNode)
-        defineClassType((ClassDefNode) i);
-      if (i instanceof VarDefNode)
-        for (var j : ((VarDefNode) i).vars)
-          declareGlobalVar((SingleVarDefNode) j);
+      if (i instanceof ClassDefNode cls)
+        defineClassType(cls);
+      if (i instanceof VarDefNode v)
+        for (var j : v.vars)
+          declareGlobalVar(j);
     }
     for (var i : node.defs) {
-      if (i instanceof ClassDefNode)
-        declareMemberFunc((ClassDefNode) i);
-      if (i instanceof FuncDefNode)
-        declareFunc((FuncDefNode) i);
+      if (i instanceof ClassDefNode cls)
+        declareMemberFunc(cls);
+      if (i instanceof FuncDefNode f)
+        declareFunc(f);
     }
 
     // definitions
@@ -117,7 +117,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ClassCtorDefNode node) {
-    // TODO Auto-generated method stub
     curFunc = clsScope.getFunc(node.name);
     curFunc.entryBlock = newBlock("entry");
     curFunc.exitBlock = newBlock("exit");
@@ -194,7 +193,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(SingleVarDefNode node) {
-    // TODO Auto-generated method stub
     var ptr = newAlloca(getType(node.type), "%" + node.name + ".addr");
     if (node.initExpr != null) {
       node.initExpr.accept(this);
@@ -205,7 +203,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ForStmtNode node) {
-    // TODO Auto-generated method stub
     var condBlock = newBlock("for.cond");
     var bodyBlock = newBlock("for.body");
     var incBlock = newBlock("for.inc");
@@ -244,7 +241,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(IfStmtNode node) {
-    // TODO Auto-generated method stub
     var thenBlock = newBlock("if.then");
     var elseBlock = newBlock("if.else");
     var endBlock = newBlock("if.end");
@@ -271,7 +267,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(WhileStmtNode node) {
-    // TODO Auto-generated method stub
     var condBlock = newBlock("while.cond");
     var bodyBlock = newBlock("while.body");
     var endBlock = newBlock("while.end");
@@ -294,13 +289,11 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(BreakStmtNode node) {
-    // TODO Auto-generated method stub
     new BrInst(curScope.getLoopScope().breakBlock, curBlock);
   }
 
   @Override
   public void visit(ContinueStmtNode node) {
-    // TODO Auto-generated method stub
     new BrInst(curScope.getLoopScope().continueBlock, curBlock);
   }
 
@@ -323,7 +316,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(SuiteNode node) {
-    // TODO Auto-generated method stub
     curScope = node.scope;
     for (var i : node.stmts)
       i.accept(this);
@@ -337,7 +329,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(AssignExprNode node) {
-    // TODO Auto-generated method stub
     node.rhs.accept(this);
     node.lhs.accept(this);
     newStore(getValue(node.rhs), node.lhs.ptr);
@@ -345,7 +336,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(AtomExprNode node) {
-    // TODO Auto-generated method stub
     if (node.isFunc) {
       if (clsScope != null) {
         node.val = clsScope.getFunc(node.text);
@@ -386,7 +376,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(BinaryExprNode node) {
-    // TODO Auto-generated method stub
     node.lhs.accept(this);
 
     // short-circuit evaluation for '&&' and '||'
@@ -487,8 +476,8 @@ public class IRBuilder implements ASTVisitor {
     int offset = 0;
     if (func.isMember) { // add "this" pointer
       offset = 1;
-      if (node.function instanceof MemberExprNode) {
-        args.add(getValue(((MemberExprNode) node.function).instance));
+      if (node.function instanceof MemberExprNode m) {
+        args.add(getValue(m.instance));
       } else {
         // in a member function, "this" is omitted
         var arg_val = newLoad("%this", curScope.getVar("this", true));
@@ -624,7 +613,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(PostfixExprNode node) {
-    // TODO Auto-generated method stub
     node.expr.accept(this);
     node.val = getValue(node.expr);
     Value val = null;
@@ -641,7 +629,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(PrefixExprNode node) {
-    // TODO Auto-generated method stub
     node.expr.accept(this);
     node.ptr = node.expr.ptr;
     switch (node.op) {
@@ -657,7 +644,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(UnaryExprNode node) {
-    // TODO Auto-generated method stubnode.
     node.expr.accept(this);
     switch (node.op) {
       case "+":
@@ -696,9 +682,9 @@ public class IRBuilder implements ASTVisitor {
   private void defineClassType(ClassDefNode node) {
     var cls = gScope.getClassType(node.className);
     for (var i : node.defs) {
-      if (i instanceof VarDefNode) {
-        for (var j : ((VarDefNode) i).vars)
-          cls.typeList.add(getType(((SingleVarDefNode) j).type));
+      if (i instanceof VarDefNode v) {
+        for (var j : v.vars)
+          cls.typeList.add(getType(j.type));
       }
     }
   }
@@ -708,8 +694,7 @@ public class IRBuilder implements ASTVisitor {
     clsType = gScope.getClassType(clsName);
     clsScope = gScope.getClassScope(clsName);
     for (var i : node.defs) {
-      if (i instanceof FuncDefNode) {
-        var funcDef = (FuncDefNode) i;
+      if (i instanceof FuncDefNode funcDef) {
         var funcType = new FuncType(getType(funcDef.returnType));
         funcType.paramTypes.add(new PointerType(clsType)); // "this" pointer
         for (var j : funcDef.params.params) {
@@ -718,8 +703,6 @@ public class IRBuilder implements ASTVisitor {
         var funcName = "@%s.%s".formatted(clsName, funcDef.funcName);
         var func = new Function(funcType, funcName, true);
         module.funcs.add(func);
-        // TODO
-        // gScope.addFunc(funcDef, func);
         clsScope.addFunc(funcDef.funcName, func);
       }
     }
@@ -876,8 +859,8 @@ public class IRBuilder implements ASTVisitor {
   private BaseType getMemType(BaseType type) {
     if (isBool(type))
       return i8BoolType;
-    if (type instanceof PointerType)
-      return new PointerType(getMemType(((PointerType) type).elemType));
+    if (type instanceof PointerType ptrType)
+      return new PointerType(getMemType(ptrType.elemType));
     return type;
   }
 

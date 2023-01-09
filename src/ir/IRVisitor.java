@@ -4,21 +4,21 @@ import ir.inst.*;
 
 public interface IRVisitor {
   // @formatter:off
-  public void visit(ir.Module node);
-  public void visit(Function node);
-  public void visit(BasicBlock node);
+  public void visit(ir.Module module);
+  public void visit(Function func);
+  public void visit(BasicBlock block);
 
-  public void visit(AllocaInst node);
-  public void visit(BinaryInst node);
-  public void visit(BitCastInst node);
-  public void visit(BrInst node);
-  public void visit(CallInst node);
-  public void visit(GetElementPtrInst node);
-  public void visit(IcmpInst node);
-  public void visit(LoadInst node);
-  public void visit(RetInst node);
-  public void visit(StoreInst node);
-  public void visit(TruncInst node);
-  public void visit(ZextInst node);
+  public void visit(AllocaInst inst);
+  public void visit(BinaryInst inst);
+  public void visit(BitCastInst inst);
+  public void visit(BrInst inst);
+  public void visit(CallInst inst);
+  public void visit(GetElementPtrInst inst);
+  public void visit(IcmpInst inst);
+  public void visit(LoadInst inst);
+  public void visit(RetInst inst);
+  public void visit(StoreInst inst);
+  public void visit(TruncInst inst);
+  public void visit(ZextInst inst);
   // @formatter:on
 }

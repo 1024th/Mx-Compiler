@@ -1,7 +1,5 @@
 package ast;
 
-import java.util.ArrayList;
-
 import utils.Position;
 
 public class ParamNode extends ASTNode {
