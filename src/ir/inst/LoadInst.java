@@ -11,9 +11,13 @@ public class LoadInst extends BaseInst {
     addOperand(ptr);
   }
 
+  public Value ptr() {
+    return this.getOperand(0);
+  }
+
   @Override
   public String toString() {
-    var ptr = this.getOperand(0);
+    var ptr = ptr();
     return "%s = load %s, %s, align %d".formatted(this.name(), this.type, ptr.typedName(), ptr.type.size());
   }
 

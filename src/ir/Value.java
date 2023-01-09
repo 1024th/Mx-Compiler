@@ -9,6 +9,9 @@ public class Value {
   public String name;
   public ArrayList<User> users = new ArrayList<>();
 
+  // corresponding assembly operand of this IR value
+  public asm.Operand asm = null;
+
   public Value(BaseType type, String name) {
     this.type = type;
     this.name = name;

@@ -3,8 +3,12 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import asm.ASMPrinter;
 import ast.ASTBuilder;
 import ast.ProgramNode;
+import backend.InstSelector;
+import backend.RegAllocator;
+import backend.StackAllocator;
 import frontend.SemanticChecker;
 import frontend.SymbolCollector;
 import grammar.MxLexer;
@@ -41,5 +45,11 @@ public class Compiler {
     irBuilder.visit(rootNode);
     var irPrinter = new IRPrinter(System.out, "input.mx");
     irPrinter.print(irBuilder.module);
+
+    var asmModule = new asm.Module();
+    new InstSelector(asmModule).visit(irBuilder.module);
+    new RegAllocator().runOnModule(asmModule);
+    new StackAllocator().runOnModule(asmModule);
+    new ASMPrinter(System.out).runOnModule(asmModule);
   }
 }
