@@ -25,7 +25,7 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
       curFunc.spilledReg = Math.max(curFunc.spilledReg, v.index + 1);
       var o = new StackOffset(v.index, StackOffset.StackOffsetType.spill);
       // TODO long offset lui
-      new asm.inst.LoadInst(reg, sp, o, curBlock);
+      new asm.inst.LoadInst(4, reg, sp, o, curBlock);
       return reg;
     }
     return (PhysicalReg) src;
@@ -36,7 +36,7 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
       curFunc.spilledReg = Math.max(curFunc.spilledReg, v.index + 1);
       var o = new StackOffset(v.index, StackOffset.StackOffsetType.spill);
       // TODO long offset lui
-      new asm.inst.StoreInst(reg, sp, o, curBlock);
+      new asm.inst.StoreInst(4, reg, sp, o, curBlock);
       return reg;
     }
     return (PhysicalReg) dest;

@@ -113,7 +113,7 @@ public class InstSelector implements ir.IRVisitor {
       } else {
         var reg = new VirtualReg(4);
         arg.asm = reg;
-        new LoadInst(reg, sp, new StackOffset(i - 8, StackOffsetType.getArg), curBlock);
+        new LoadInst(4, reg, sp, new StackOffset(i - 8, StackOffsetType.getArg), curBlock);
       }
     }
 
@@ -213,7 +213,7 @@ public class InstSelector implements ir.IRVisitor {
       } else {
         curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 8);
         var offset = new StackOffset(i - 8, StackOffsetType.putArg);
-        new asm.inst.StoreInst(getReg(arg), sp, offset, curBlock);
+        new asm.inst.StoreInst(4, getReg(arg), sp, offset, curBlock);
       }
     }
 
@@ -294,17 +294,18 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(ir.inst.LoadInst inst) {
     var ptr = inst.ptr();
+    var size = ((PointerType) ptr.type).elemType.size();
     if (ptr instanceof ir.constant.Constant v) {
       // global variable or string constant
       var tmp = new VirtualReg();
       var obj = (GlobalObj) v.asm;
       new LuiInst(tmp, new Relocation(obj, RelocationType.hi), curBlock);
-      new LoadInst(getReg(inst), tmp, new Relocation(obj, RelocationType.lo), curBlock);
+      new LoadInst(size, getReg(inst), tmp, new Relocation(obj, RelocationType.lo), curBlock);
     } else {
       if (ptr.asm instanceof StackOffset x)
-        new LoadInst(getReg(inst), sp, x, curBlock);
+        new LoadInst(size, getReg(inst), sp, x, curBlock);
       else
-        new LoadInst(getReg(inst), (Reg) ptr.asm, new Imm(0), curBlock);
+        new LoadInst(size, getReg(inst), (Reg) ptr.asm, new Imm(0), curBlock);
     }
   }
 
@@ -318,17 +319,18 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(ir.inst.StoreInst inst) {
     var ptr = inst.ptr();
+    var val = inst.val();
     if (ptr instanceof ir.constant.Constant v) {
       // global variable or string constant
       var tmp = new VirtualReg();
       var obj = (GlobalObj) v.asm;
       new LuiInst(tmp, new Relocation(obj, RelocationType.hi), curBlock);
-      new StoreInst(getReg(inst.val()), tmp, new Relocation(obj, RelocationType.lo), curBlock);
+      new StoreInst(val.type.size(), getReg(val), tmp, new Relocation(obj, RelocationType.lo), curBlock);
     } else {
       if (ptr.asm instanceof StackOffset x)
-        new StoreInst(getReg(inst.val()), sp, x, curBlock);
+        new StoreInst(val.type.size(), getReg(val), sp, x, curBlock);
       else
-        new StoreInst(getReg(inst.val()), (Reg) ptr.asm, new Imm(0), curBlock);
+        new StoreInst(val.type.size(), getReg(val), (Reg) ptr.asm, new Imm(0), curBlock);
     }
   }
 

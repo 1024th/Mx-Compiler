@@ -7,17 +7,22 @@ import asm.operand.Reg;
 public class StoreInst extends BaseInst {
   public Reg rs1, rs2;
   public Imm offset;
+  public int size;
 
-  public StoreInst(Reg val, Reg addr, Imm offset, Block parent) {
+  public StoreInst(int size, Reg val, Reg addr, Imm offset, Block parent) {
     super(parent);
     this.rs1 = addr;
     this.rs2 = val;
     this.offset = offset;
+    this.size = size;
   }
 
   @Override
   public String toString() {
-    return "sw %s, %s(%s)".formatted(rs2, offset, rs1);
+    if (size == 1)
+      return "sb %s, %s(%s)".formatted(rs2, offset, rs1);
+    else
+      return "sw %s, %s(%s)".formatted(rs2, offset, rs1);
   }
 
   @Override

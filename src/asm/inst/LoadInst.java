@@ -7,17 +7,22 @@ import asm.operand.Reg;
 public class LoadInst extends BaseInst {
   public Reg rd, rs;
   public Imm offset;
+  public int size;
 
-  public LoadInst(Reg rd, Reg rs, Imm offset, Block parent) {
+  public LoadInst(int size, Reg rd, Reg rs, Imm offset, Block parent) {
     super(parent);
     this.rd = rd;
     this.rs = rs;
     this.offset = offset;
+    this.size = size;
   }
 
   @Override
   public String toString() {
-    return "lw %s, %s(%s)".formatted(rd, offset, rs);
+    if (size == 1)
+      return "lb %s, %s(%s)".formatted(rd, offset, rs);
+    else
+      return "lw %s, %s(%s)".formatted(rd, offset, rs);
   }
 
   @Override
