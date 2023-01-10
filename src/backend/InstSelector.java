@@ -1,5 +1,6 @@
 package backend;
 
+import ir.IRBuilder;
 import ir.inst.*;
 import ir.type.PointerType;
 
@@ -231,9 +232,24 @@ public class InstSelector implements ir.IRVisitor {
       new ITypeInst("addi", reg, reg, new Relocation(s, RelocationType.lo), curBlock);
       inst.asm = reg;
     } else if (ptrElemType instanceof ir.type.StructType) {
-      // TODO struct
+      // class member
+      // getelementptr inbounds %cls, %cls* %ptr, i32 0, i32 member_index
+      var tmp = new VirtualReg();
+      // TODO optimize
+      new ITypeInst("slli", tmp, getReg(inst.getOperand(2)), new Imm(4), curBlock);
+      new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     } else {
-      // TODO array
+      // array, element type will only be int/bool/pointer (will not be char)
+      // getelementptr inbounds int, int* %arr, i32 index
+      // TODO optimize
+      Reg tmp;
+      if (IRBuilder.isBool(ptrElemType)) {
+        tmp = getReg(inst.getOperand(1));
+      } else {
+        tmp = new VirtualReg();
+        new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(4), curBlock);
+      }
+      new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     }
   }
 
@@ -319,7 +335,9 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(TruncInst inst) {
-    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
+    var tmp = new VirtualReg();
+    new ITypeInst("andi", tmp, getReg(inst.getOperand(0)), new Imm(1), curBlock);
+    new MvInst(getReg(inst), tmp, curBlock);
   }
 
   @Override

@@ -844,7 +844,7 @@ public class IRBuilder implements ASTVisitor {
     return name;
   }
 
-  private boolean isBool(BaseType type) {
+  public static boolean isBool(BaseType type) {
     if (!(type instanceof IntType))
       return false;
     var t = (IntType) type;
