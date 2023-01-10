@@ -1,12 +1,15 @@
 package backend;
 
 import ir.inst.*;
+import ir.type.PointerType;
 
 import java.util.ArrayList;
 
 import asm.Block;
 import asm.inst.LoadInst;
+import asm.inst.StoreInst;
 import asm.operand.*;
+import asm.operand.Relocation.RelocationType;
 import asm.operand.StackOffset.StackOffsetType;
 import asm.inst.*;
 
@@ -23,17 +26,20 @@ public class InstSelector implements ir.IRVisitor {
     return PhysicalReg.regMap.get("a" + i);
   }
 
+  private Integer getConstVal(ir.Value v) {
+    Integer constVal = null;
+    if (v instanceof ir.constant.IntConst x)
+      constVal = x.val;
+    else if (v instanceof ir.constant.NullptrConst)
+      constVal = 0;
+    return constVal;
+  }
+
   private Reg getReg(ir.Value val) {
     if (val.asm != null) {
       return (Reg) val.asm;
     }
-
-    Integer constVal = null;
-    if (val instanceof ir.constant.IntConst x)
-      constVal = x.val;
-    else if (val instanceof ir.constant.NullptrConst)
-      constVal = 0;
-
+    var constVal = getConstVal(val);
     if (constVal != null) {
       if (constVal == 0) {
         val.asm = PhysicalReg.regMap.get("zero");
@@ -52,9 +58,20 @@ public class InstSelector implements ir.IRVisitor {
   }
 
   @Override
-  public void visit(ir.Module module) {
-    // TODO Auto-generated method stub
-    for (var i : module.funcs) {
+  public void visit(ir.Module irModule) {
+    // global objects
+    for (var v : irModule.globalVars) {
+      var init = getConstVal(v.initVal);
+      v.asm = new GlobalVariable(v.name.substring(1),
+          init == null ? 0 : init, v.type.size());
+      module.globalVars.add((GlobalVariable) v.asm);
+    }
+    for (var s : irModule.stringConsts) {
+      s.asm = new StringConst(s.name.substring(1), s.val);
+      module.stringConsts.add((StringConst) s.asm);
+    }
+    // functions
+    for (var i : irModule.funcs) {
       i.accept(this);
     }
   }
@@ -133,33 +150,39 @@ public class InstSelector implements ir.IRVisitor {
     String op = switch (inst.op) {
       case "add" -> "add";
       case "sub" -> "sub";
-      case "mul" -> "mul";
       case "and" -> "and";
       case "or" -> "or";
       case "xor" -> "xor";
+      case "mul" -> "mul";
       case "sdiv" -> "div";
       case "srem" -> "rem";
       case "shl" -> "sll";
       case "ashr" -> "sra";
       default -> null;
     };
+    boolean hasIType = switch (inst.op) {
+      case "mul", "sdiv", "srem" -> false;
+      default -> true;
+    };
     var op1 = inst.op1();
     var op2 = inst.op2();
-    if (op1 instanceof ir.constant.IntConst) {
-      var tmp = op1;
-      op1 = op2;
-      op2 = tmp;
-    }
-    if (op2 instanceof ir.constant.IntConst x) {
-      String iop = op + "i";
-      int val = x.val;
-      if (op.equals("sub")) {
-        iop = "addi";
-        val = -val;
+    if (hasIType) {
+      if (op1 instanceof ir.constant.IntConst) {
+        var tmp = op1;
+        op1 = op2;
+        op2 = tmp;
       }
-      if (val < 1 << 11 && val >= -(1 << 11)) {
-        new ITypeInst(iop, getReg(inst), getReg(op1), new Imm(val), curBlock);
-        return;
+      if (op2 instanceof ir.constant.IntConst x) {
+        String iop = op + "i";
+        int val = x.val;
+        if (op.equals("sub")) {
+          iop = "addi";
+          val = -val;
+        }
+        if (val < 1 << 11 && val >= -(1 << 11)) {
+          new ITypeInst(iop, getReg(inst), getReg(op1), new Imm(val), curBlock);
+          return;
+        }
       }
     }
     new RTypeInst(op, getReg(inst), getReg(op1), getReg(op2), curBlock);
@@ -198,7 +221,20 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(GetElementPtrInst inst) {
     // TODO Auto-generated method stub
-
+    var ptr = inst.ptr();
+    var ptrElemType = ((PointerType) ptr.type).elemType;
+    if (ptrElemType instanceof ir.type.ArrayType) {
+      // string constant
+      var reg = new VirtualReg();
+      var s = (StringConst) ptr.asm;
+      new LuiInst(reg, new Relocation(s, RelocationType.hi), curBlock);
+      new ITypeInst("addi", reg, reg, new Relocation(s, RelocationType.lo), curBlock);
+      inst.asm = reg;
+    } else if (ptrElemType instanceof ir.type.StructType) {
+      // TODO struct
+    } else {
+      // TODO array
+    }
   }
 
   @Override
@@ -236,16 +272,18 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(ir.inst.LoadInst inst) {
-    // TODO Auto-generated method stub
     var ptr = inst.ptr();
-    if (ptr instanceof ir.constant.GlobalVariable) {
-      // TODO
+    if (ptr instanceof ir.constant.Constant v) {
+      // global variable or string constant
+      var tmp = new VirtualReg();
+      var obj = (GlobalObj) v.asm;
+      new LuiInst(tmp, new Relocation(obj, RelocationType.hi), curBlock);
+      new LoadInst(getReg(inst), tmp, new Relocation(obj, RelocationType.lo), curBlock);
     } else {
       if (ptr.asm instanceof StackOffset x)
         new LoadInst(getReg(inst), sp, x, curBlock);
-      else {
-        // TODO
-      }
+      else
+        new LoadInst(getReg(inst), (Reg) ptr.asm, new Imm(0), curBlock);
     }
   }
 
@@ -258,16 +296,18 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(ir.inst.StoreInst inst) {
-    // TODO Auto-generated method stub
     var ptr = inst.ptr();
-    if (ptr instanceof ir.constant.GlobalVariable) {
-      // TODO
+    if (ptr instanceof ir.constant.Constant v) {
+      // global variable or string constant
+      var tmp = new VirtualReg();
+      var obj = (GlobalObj) v.asm;
+      new LuiInst(tmp, new Relocation(obj, RelocationType.hi), curBlock);
+      new StoreInst(getReg(inst.val()), tmp, new Relocation(obj, RelocationType.lo), curBlock);
     } else {
       if (ptr.asm instanceof StackOffset x)
-        new asm.inst.StoreInst(getReg(inst.val()), sp, x, curBlock);
-      else {
-        // TODO
-      }
+        new StoreInst(getReg(inst.val()), sp, x, curBlock);
+      else
+        new StoreInst(getReg(inst.val()), (Reg) ptr.asm, new Imm(0), curBlock);
     }
   }
 

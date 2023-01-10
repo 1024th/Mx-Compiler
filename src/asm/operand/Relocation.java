@@ -8,13 +8,14 @@ public class Relocation extends Imm {
   public RelocationType type;
   public GlobalObj obj;
 
-  public Relocation(GlobalObj obj) {
+  public Relocation(GlobalObj obj, RelocationType type) {
     super(0);
     this.obj = obj;
+    this.type = type;
   }
 
   @Override
   public String toString() {
-    return "%s(%s)".formatted(type, obj);
+    return "%%%s(%s)".formatted(type, obj);
   }
 }

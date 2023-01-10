@@ -9,6 +9,7 @@ public interface InstVisitor {
   public void visit(ITypeInst inst);
   public void visit(JumpInst inst);
   public void visit(LiInst inst);
+  public void visit(LuiInst inst);
   public void visit(LoadInst inst);
   public void visit(MvInst inst);
   public void visit(RetInst inst);

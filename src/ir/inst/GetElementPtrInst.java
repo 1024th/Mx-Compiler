@@ -15,11 +15,14 @@ public class GetElementPtrInst extends BaseInst {
       addOperand(i);
   }
 
+  public Value ptr() {
+    return this.getOperand(0);
+  }
+
   @Override
   public String toString() {
-    var ptr = this.getOperand(0);
     return "%s = getelementptr inbounds %s, %s".formatted(
-        name(), ((PointerType) ptr.type).elemType,
+        name(), ((PointerType) ptr().type).elemType,
         TextUtils.join(operands, x -> x.typedName()));
   }
 
