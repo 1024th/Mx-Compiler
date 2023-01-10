@@ -1,11 +1,11 @@
 package asm.operand;
 
 public class Relocation extends Imm {
-  public enum FuncType {
+  public enum RelocationType {
     hi, lo
   };
 
-  public FuncType func;
+  public RelocationType type;
   public String symbol;
 
   public Relocation(String symbol) {
@@ -15,6 +15,6 @@ public class Relocation extends Imm {
 
   @Override
   public String toString() {
-    return "%s(%s)".formatted(func, symbol);
+    return "%s(%s)".formatted(type, symbol);
   }
 }

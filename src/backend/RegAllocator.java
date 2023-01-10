@@ -23,7 +23,7 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
   private PhysicalReg regAllocRead(Reg src, PhysicalReg reg) {
     if (src instanceof VirtualReg v) {
       curFunc.spilledReg = Math.max(curFunc.spilledReg, v.index + 1);
-      var o = new StackOffset(v.index, StackOffset.Type.spill);
+      var o = new StackOffset(v.index, StackOffset.StackOffsetType.spill);
       // TODO long offset lui
       new asm.inst.LoadInst(reg, sp, o, curBlock);
       return reg;
@@ -34,7 +34,7 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
   private PhysicalReg regAllocWrite(Reg dest, PhysicalReg reg) {
     if (dest instanceof VirtualReg v) {
       curFunc.spilledReg = Math.max(curFunc.spilledReg, v.index + 1);
-      var o = new StackOffset(v.index, StackOffset.Type.spill);
+      var o = new StackOffset(v.index, StackOffset.StackOffsetType.spill);
       // TODO long offset lui
       new asm.inst.StoreInst(reg, sp, o, curBlock);
       return reg;

@@ -1,13 +1,13 @@
 package backend;
 
 import ir.inst.*;
-import ir.inst.RetInst;
 
 import java.util.ArrayList;
 
 import asm.Block;
 import asm.inst.LoadInst;
 import asm.operand.*;
+import asm.operand.StackOffset.StackOffsetType;
 import asm.inst.*;
 
 public class InstSelector implements ir.IRVisitor {
@@ -73,7 +73,7 @@ public class InstSelector implements ir.IRVisitor {
     curBlock = (Block) func.entryBlock.asm;
 
     // decrease sp
-    new ITypeInst("addi", sp, sp, new StackOffset(0, StackOffset.Type.decSp), curBlock);
+    new ITypeInst("addi", sp, sp, new StackOffset(0, StackOffsetType.decSp), curBlock);
 
     // save ra
     VirtualReg savedRa = new VirtualReg();
@@ -94,7 +94,7 @@ public class InstSelector implements ir.IRVisitor {
       } else {
         var reg = new VirtualReg(4);
         arg.asm = reg;
-        new LoadInst(reg, sp, new StackOffset(i - 8, StackOffset.Type.getArg), curBlock);
+        new LoadInst(reg, sp, new StackOffset(i - 8, StackOffsetType.getArg), curBlock);
       }
     }
 
@@ -111,7 +111,7 @@ public class InstSelector implements ir.IRVisitor {
     new MvInst(ra, savedRa, curBlock);
 
     // increase sp
-    new ITypeInst("addi", sp, sp, new StackOffset(0, StackOffset.Type.incSp), curBlock);
+    new ITypeInst("addi", sp, sp, new StackOffset(0, StackOffsetType.incSp), curBlock);
 
     new asm.inst.RetInst(curBlock);
   }
@@ -124,26 +124,49 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(AllocaInst inst) {
-    // TODO Auto-generated method stub
-    inst.asm = new StackOffset(curFunc.allocaCnt, StackOffset.Type.alloca);
+    inst.asm = new StackOffset(curFunc.allocaCnt, StackOffsetType.alloca);
     curFunc.allocaCnt++;
   }
 
   @Override
   public void visit(BinaryInst inst) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void visit(BitCastInst inst) {
-    // TODO Auto-generated method stub
-
+    String op = switch (inst.op) {
+      case "add" -> "add";
+      case "sub" -> "sub";
+      case "mul" -> "mul";
+      case "and" -> "and";
+      case "or" -> "or";
+      case "xor" -> "xor";
+      case "sdiv" -> "div";
+      case "srem" -> "rem";
+      case "shl" -> "sll";
+      case "ashr" -> "sra";
+      default -> null;
+    };
+    var op1 = inst.op1();
+    var op2 = inst.op2();
+    if (op1 instanceof ir.constant.IntConst) {
+      var tmp = op1;
+      op1 = op2;
+      op2 = tmp;
+    }
+    if (op2 instanceof ir.constant.IntConst x) {
+      String iop = op + "i";
+      int val = x.val;
+      if (op.equals("sub")) {
+        iop = "addi";
+        val = -val;
+      }
+      if (val < 1 << 11 && val >= -(1 << 11)) {
+        new ITypeInst(iop, getReg(inst), getReg(op1), new Imm(val), curBlock);
+        return;
+      }
+    }
+    new RTypeInst(op, getReg(inst), getReg(op1), getReg(op2), curBlock);
   }
 
   @Override
   public void visit(BrInst inst) {
-    // TODO Auto-generated method stub
     if (inst.operands.size() == 1) {
       new JumpInst((Block) inst.dest().asm, curBlock);
     } else {
@@ -160,7 +183,7 @@ public class InstSelector implements ir.IRVisitor {
         new MvInst(RegA(i), getReg(arg), curBlock);
       } else {
         curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 8);
-        var offset = new StackOffset(i - 8, StackOffset.Type.putArg);
+        var offset = new StackOffset(i - 8, StackOffsetType.putArg);
         new asm.inst.StoreInst(getReg(arg), sp, offset, curBlock);
       }
     }
@@ -180,8 +203,35 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(IcmpInst inst) {
-    // TODO Auto-generated method stub
-
+    VirtualReg tmp = null;
+    switch (inst.op) {
+      case "slt":
+        new RTypeInst("slt", getReg(inst), getReg(inst.op1()), getReg(inst.op2()), curBlock);
+        break;
+      case "sgt":
+        new RTypeInst("slt", getReg(inst), getReg(inst.op2()), getReg(inst.op1()), curBlock);
+        break;
+      case "eq":
+        tmp = new VirtualReg();
+        new RTypeInst("sub", tmp, getReg(inst.op1()), getReg(inst.op2()), curBlock);
+        new ITypeInst("seqz", getReg(inst), tmp, curBlock);
+        break;
+      case "ne":
+        tmp = new VirtualReg();
+        new RTypeInst("sub", tmp, getReg(inst.op1()), getReg(inst.op2()), curBlock);
+        new ITypeInst("snez", getReg(inst), tmp, curBlock);
+        break;
+      case "sge": // a >= b -> !(a < b)
+        tmp = new VirtualReg();
+        new RTypeInst("slt", tmp, getReg(inst.op1()), getReg(inst.op2()), curBlock);
+        new ITypeInst("xori", getReg(inst), tmp, new Imm(1), curBlock);
+        break;
+      case "sle": // a <= b -> !(b < a)
+        tmp = new VirtualReg();
+        new RTypeInst("slt", tmp, getReg(inst.op2()), getReg(inst.op1()), curBlock);
+        new ITypeInst("xori", getReg(inst), tmp, new Imm(1), curBlock);
+        break;
+    }
   }
 
   @Override
@@ -221,16 +271,20 @@ public class InstSelector implements ir.IRVisitor {
     }
   }
 
+  // TODO optimize following?
+  @Override
+  public void visit(BitCastInst inst) {
+    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
+  }
+
   @Override
   public void visit(TruncInst inst) {
-    // TODO Auto-generated method stub
-
+    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
   }
 
   @Override
   public void visit(ZextInst inst) {
-    // TODO Auto-generated method stub
-
+    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
   }
 
 }

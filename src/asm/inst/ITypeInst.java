@@ -17,6 +17,10 @@ public class ITypeInst extends BaseInst {
     this.op = op;
   }
 
+  public ITypeInst(String op, Reg rd, Reg rs, Block parent) {
+    this(op, rd, rs, null, parent);
+  }
+
   @Override
   public String toString() {
     if (this.imm == null) // pseudo inst

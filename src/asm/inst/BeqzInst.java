@@ -15,7 +15,7 @@ public class BeqzInst extends BaseInst {
 
   @Override
   public String toString() {
-    return "beqz %s, %s".formatted(rs, dest);
+    return "beqz %s, %s".formatted(rs, dest.label);
   }
 
   @Override

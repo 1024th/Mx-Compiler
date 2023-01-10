@@ -14,11 +14,17 @@ public class BinaryInst extends BaseInst {
     addOperand(op2);
   }
 
+  public Value op1() {
+    return this.getOperand(0);
+  }
+
+  public Value op2() {
+    return this.getOperand(1);
+  }
+
   @Override
   public String toString() {
-    var op1 = getOperand(0);
-    var op2 = getOperand(1);
-    return "%s = %s %s %s, %s".formatted(name(), op, type, op1.name(), op2.name());
+    return "%s = %s %s %s, %s".formatted(name(), op, type, op1().name(), op2().name());
   }
 
   @Override
