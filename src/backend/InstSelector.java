@@ -237,14 +237,14 @@ public class InstSelector implements ir.IRVisitor {
       // getelementptr inbounds %cls, %cls* %ptr, i32 0, i32 member_index
       var tmp = new VirtualReg();
       // TODO optimize
-      new ITypeInst("slli", tmp, getReg(inst.getOperand(2)), new Imm(4), curBlock);
+      new ITypeInst("slli", tmp, getReg(inst.getOperand(2)), new Imm(2), curBlock);
       new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     } else {
       // array, element type will only be int/bool/pointer (will not be char)
       // getelementptr inbounds int, int* %arr, i32 index
       // TODO optimize
       var tmp = new VirtualReg();
-      new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(4), curBlock);
+      new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(2), curBlock);
       new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     }
   }
