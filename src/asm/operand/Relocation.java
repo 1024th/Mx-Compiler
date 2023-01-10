@@ -6,15 +6,15 @@ public class Relocation extends Imm {
   };
 
   public RelocationType type;
-  public String symbol;
+  public GlobalObj obj;
 
-  public Relocation(String symbol) {
+  public Relocation(GlobalObj obj) {
     super(0);
-    this.symbol = symbol;
+    this.obj = obj;
   }
 
   @Override
   public String toString() {
-    return "%s(%s)".formatted(type, symbol);
+    return "%s(%s)".formatted(type, obj);
   }
 }
