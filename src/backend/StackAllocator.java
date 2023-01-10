@@ -63,14 +63,18 @@ public class StackAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPa
   }
 
   @Override
-  public void visit(BeqzInst inst) {
-  }
-
-  @Override
   public void visit(ITypeInst inst) {
     if (inst.imm instanceof StackOffset s) {
       inst.imm = calcStackOff(s);
     }
+  }
+
+  @Override
+  public void visit(BeqzInst inst) {
+  }
+
+  @Override
+  public void visit(CallInst inst) {
   }
 
   @Override

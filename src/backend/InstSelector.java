@@ -153,9 +153,23 @@ public class InstSelector implements ir.IRVisitor {
   }
 
   @Override
-  public void visit(CallInst inst) {
-    // TODO Auto-generated method stub
+  public void visit(ir.inst.CallInst inst) {
+    for (int i = 0; i + 1 < inst.operands.size(); ++i) {
+      var arg = inst.operands.get(i + 1);
+      if (i < 8) {
+        new MvInst(RegA(i), getReg(arg), curBlock);
+      } else {
+        curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 8);
+        var offset = new StackOffset(i - 8, StackOffset.Type.putArg);
+        new asm.inst.StoreInst(getReg(arg), sp, offset, curBlock);
+      }
+    }
 
+    new asm.inst.CallInst(inst.getFunc().name.substring(1), curBlock);
+
+    if (!(inst.type instanceof ir.type.VoidType)) {
+      new MvInst(getReg(inst), a0, curBlock);
+    }
   }
 
   @Override

@@ -41,9 +41,10 @@ public class Compiler {
     semanticChecker.visit(rootNode);
     // System.out.println(root.toStringTree());
 
+    var ll = new java.io.PrintStream(new java.io.FileOutputStream("out.ll"));
     var irBuilder = new IRBuilder(gScope);
     irBuilder.visit(rootNode);
-    var irPrinter = new IRPrinter(System.out, "input.mx");
+    var irPrinter = new IRPrinter(ll, "input.mx");
     irPrinter.print(irBuilder.module);
 
     var asmModule = new asm.Module();

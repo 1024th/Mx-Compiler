@@ -5,6 +5,7 @@ import asm.inst.*;
 public interface InstVisitor {
   // @formatter:off
   public void visit(BeqzInst inst);
+  public void visit(CallInst inst);
   public void visit(ITypeInst inst);
   public void visit(JumpInst inst);
   public void visit(LiInst inst);
