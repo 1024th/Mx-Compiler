@@ -45,8 +45,9 @@ public class InstSelector implements ir.IRVisitor {
       if (constVal == 0) {
         val.asm = PhysicalReg.regMap.get("zero");
       } else {
-        val.asm = new VirtualReg(val.type.size());
-        new LiInst((Reg) val.asm, new Imm(constVal), curBlock);
+        var reg = new VirtualReg(val.type.size());
+        new LiInst(reg, new Imm(constVal), curBlock);
+        return reg;
       }
     } else {
       val.asm = new VirtualReg(val.type.size());
@@ -242,13 +243,8 @@ public class InstSelector implements ir.IRVisitor {
       // array, element type will only be int/bool/pointer (will not be char)
       // getelementptr inbounds int, int* %arr, i32 index
       // TODO optimize
-      Reg tmp;
-      if (IRBuilder.isBool(ptrElemType)) {
-        tmp = getReg(inst.getOperand(1));
-      } else {
-        tmp = new VirtualReg();
-        new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(4), curBlock);
-      }
+      var tmp = new VirtualReg();
+      new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(4), curBlock);
       new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     }
   }
