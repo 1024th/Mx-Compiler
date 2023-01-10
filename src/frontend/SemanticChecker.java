@@ -122,7 +122,7 @@ public class SemanticChecker implements ASTVisitor {
             node.initExpr.pos);
       }
     }
-    // TODO: check
+    // SymbolCollector already adds member vars to ClassScope 
     if (!(this.curScope instanceof ClassScope)) {
       this.curScope.addVarDef(node);
     }

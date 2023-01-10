@@ -496,7 +496,7 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ParamListNode node) {
-    // TODO Auto-generated method stub
+    // Not Used
   }
 
   @Override
@@ -509,7 +509,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(MemberExprNode node) {
-    // TODO Auto-generated method stub
     node.instance.accept(this);
     if (node.instance.type.isArrayType) {
       // .size function
@@ -538,7 +537,6 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(NewExprNode node) {
-    // TODO Auto-generated method stub
     if (node.type.isArrayType) {
       var sizeVals = new ArrayList<Value>();
       for (var i : node.sizeExprs) {
@@ -670,7 +668,7 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ParamNode node) {
-    // TODO Auto-generated method stub
+    // Not Used
   }
 
   private void declareClassType(ClassDefNode node) {

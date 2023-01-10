@@ -1,6 +1,5 @@
 package backend;
 
-import ir.IRBuilder;
 import ir.inst.*;
 import ir.type.PointerType;
 
@@ -226,7 +225,6 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(GetElementPtrInst inst) {
-    // TODO Auto-generated method stub
     var ptr = inst.ptr();
     var ptrElemType = ((PointerType) ptr.type).elemType;
     if (ptrElemType instanceof ir.type.ArrayType) {
