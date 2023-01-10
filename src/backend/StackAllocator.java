@@ -82,10 +82,6 @@ public class StackAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPa
   }
 
   @Override
-  public void visit(LaInst inst) {
-  }
-
-  @Override
   public void visit(LiInst inst) {
   }
 
