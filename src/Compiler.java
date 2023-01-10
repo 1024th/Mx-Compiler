@@ -1,3 +1,6 @@
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -15,6 +18,7 @@ import grammar.MxLexer;
 import grammar.MxParser;
 import ir.IRBuilder;
 import ir.IRPrinter;
+import utils.BuiltinAsmPrinter;
 import utils.MxErrorListener;
 import utils.scope.GlobalScope;
 
@@ -41,16 +45,24 @@ public class Compiler {
     semanticChecker.visit(rootNode);
     // System.out.println(root.toStringTree());
 
-    var ll = new java.io.PrintStream(new java.io.FileOutputStream("out.ll"));
     var irBuilder = new IRBuilder(gScope);
     irBuilder.visit(rootNode);
+    var llFile = new FileOutputStream("out.ll");
+    var ll = new PrintStream(llFile);
     var irPrinter = new IRPrinter(ll, "input.mx");
     irPrinter.print(irBuilder.module);
+    llFile.close();
 
     var asmModule = new asm.Module();
     new InstSelector(asmModule).visit(irBuilder.module);
     new RegAllocator().runOnModule(asmModule);
     new StackAllocator().runOnModule(asmModule);
-    new ASMPrinter(System.out).runOnModule(asmModule);
+
+    var asmFile = new FileOutputStream("output.s");
+    var asm = new PrintStream(asmFile);
+    new ASMPrinter(asm).runOnModule(asmModule);
+    asmFile.close();
+
+    new BuiltinAsmPrinter("builtin.s");
   }
 }
