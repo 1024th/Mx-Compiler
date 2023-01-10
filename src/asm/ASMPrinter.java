@@ -26,6 +26,6 @@ public class ASMPrinter implements ModulePass, FuncPass, BlockPass {
   @Override
   public void runOnBlock(Block block) {
     p.print(block.label + ":\n");
-    block.insts.forEach(inst -> p.print(inst));
+    block.insts.forEach(inst -> p.println("\t" + inst));
   }
 }

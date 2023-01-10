@@ -1,14 +1,13 @@
 package asm.inst;
 
 import asm.Block;
-import asm.Function;
 import asm.operand.Reg;
 
 public class BeqzInst extends BaseInst {
   public Reg rs;
-  public Function dest;
+  public Block dest;
 
-  public BeqzInst(Reg rs, Function dest, Block parent) {
+  public BeqzInst(Reg rs, Block dest, Block parent) {
     super(parent);
     this.rs = rs;
     this.dest = dest;

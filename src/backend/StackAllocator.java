@@ -23,7 +23,7 @@ public class StackAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPa
       case alloca -> curFunc.spilledArg + s.val;
       case putArg -> s.val;
       case getArg -> curFunc.totalStack + s.val;
-      case decSp -> curFunc.totalStack;
+      case decSp -> -curFunc.totalStack;
       case incSp -> curFunc.totalStack;
     };
     return new Imm(offset * 4);
@@ -68,6 +68,9 @@ public class StackAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPa
 
   @Override
   public void visit(ITypeInst inst) {
+    if (inst.imm instanceof StackOffset s) {
+      inst.imm = calcStackOff(s);
+    }
   }
 
   @Override

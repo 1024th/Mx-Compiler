@@ -1,6 +1,7 @@
 package backend;
 
 import ir.inst.*;
+import ir.inst.RetInst;
 
 import java.util.ArrayList;
 
@@ -16,6 +17,7 @@ public class InstSelector implements ir.IRVisitor {
 
   private final PhysicalReg sp = PhysicalReg.regMap.get("sp");
   private final PhysicalReg ra = PhysicalReg.regMap.get("ra");
+  private final PhysicalReg a0 = PhysicalReg.regMap.get("a0");
 
   private PhysicalReg RegA(int i) {
     return PhysicalReg.regMap.get("a" + i);
@@ -59,12 +61,15 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(ir.Function func) {
-    // TODO Auto-generated method stub
-    curFunc = new asm.Function(func.name);
+    // remove '@' in front of the function name
+    curFunc = new asm.Function(func.name.substring(1));
     module.funcs.add(curFunc);
     VirtualReg.cnt = 0;
 
-    func.blocks.forEach(x -> x.asm = new Block(x.name));
+    for (var i : func.blocks) {
+      i.asm = new Block(i.name);
+      curFunc.blocks.add((Block) i.asm);
+    }
     curBlock = (Block) func.entryBlock.asm;
 
     // decrease sp
@@ -107,6 +112,8 @@ public class InstSelector implements ir.IRVisitor {
 
     // increase sp
     new ITypeInst("addi", sp, sp, new StackOffset(0, StackOffset.Type.incSp), curBlock);
+
+    new asm.inst.RetInst(curBlock);
   }
 
   @Override
@@ -137,7 +144,12 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(BrInst inst) {
     // TODO Auto-generated method stub
-
+    if (inst.operands.size() == 1) {
+      new JumpInst((Block) inst.dest().asm, curBlock);
+    } else {
+      new BeqzInst(getReg(inst.cond()), (Block) inst.ifElse().asm, curBlock);
+      new JumpInst((Block) inst.ifThen().asm, curBlock);
+    }
   }
 
   @Override
@@ -175,8 +187,9 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(ir.inst.RetInst inst) {
-    // TODO Auto-generated method stub
-
+    if (inst.operands.size() != 0) {
+      new MvInst(a0, getReg(inst.val()), curBlock);
+    }
   }
 
   @Override

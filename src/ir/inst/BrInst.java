@@ -6,9 +6,13 @@ import ir.Value;
 import ir.type.VoidType;
 
 public class BrInst extends BaseInst {
-  public BrInst(BasicBlock dst, BasicBlock parent) {
+  public BrInst(BasicBlock dest, BasicBlock parent) {
     super(new VoidType(), "br", parent);
-    addOperand(dst);
+    addOperand(dest);
+  }
+
+  public BasicBlock dest() {
+    return (BasicBlock) this.getOperand(0);
   }
 
   public BrInst(Value condition, BasicBlock ifThen, BasicBlock ifElse, BasicBlock parent) {
@@ -18,16 +22,24 @@ public class BrInst extends BaseInst {
     addOperand(ifElse);
   }
 
+  public Value cond() {
+    return this.getOperand(0);
+  }
+
+  public BasicBlock ifThen() {
+    return (BasicBlock) this.getOperand(1);
+  }
+
+  public BasicBlock ifElse() {
+    return (BasicBlock) this.getOperand(2);
+  }
+
   @Override
   public String toString() {
     if (this.operands.size() == 1) {
-      var dest = this.getOperand(0);
-      return "br " + dest.typedName();
+      return "br " + dest().typedName();
     }
-    var cond = this.getOperand(0);
-    var ifThen = this.getOperand(1);
-    var ifElse = this.getOperand(2);
-    return "br %s, %s, %s".formatted(cond.typedName(), ifThen.typedName(), ifElse.typedName());
+    return "br %s, %s, %s".formatted(cond().typedName(), ifThen().typedName(), ifElse().typedName());
   }
 
   @Override

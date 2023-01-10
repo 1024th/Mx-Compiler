@@ -63,8 +63,8 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
 
   @Override
   public void visit(BeqzInst inst) {
-    // TODO Auto-generated method stub
-
+    inst.rs = regAllocRead(inst.rs, t0);
+    curBlock.addInst(inst);
   }
 
   @Override
@@ -76,14 +76,13 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
 
   @Override
   public void visit(JumpInst inst) {
-    // TODO Auto-generated method stub
-
+    curBlock.addInst(inst);
   }
 
   @Override
   public void visit(LiInst inst) {
-    // TODO Auto-generated method stub
-
+    curBlock.addInst(inst);
+    inst.rd = regAllocWrite(inst.rd, t0);
   }
 
   @Override
@@ -95,14 +94,14 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
 
   @Override
   public void visit(MvInst inst) {
-    // TODO Auto-generated method stub
-
+    inst.rs1 = regAllocRead(inst.rs1, t0);
+    curBlock.addInst(inst);
+    inst.rd = regAllocWrite(inst.rd, t0);
   }
 
   @Override
   public void visit(RetInst inst) {
-    // TODO Auto-generated method stub
-
+    curBlock.addInst(inst);
   }
 
   @Override

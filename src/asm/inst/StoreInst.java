@@ -8,10 +8,10 @@ public class StoreInst extends BaseInst {
   public Reg rs1, rs2;
   public Imm offset;
 
-  public StoreInst(Reg rs1, Reg rs2, Imm offset, Block parent) {
+  public StoreInst(Reg val, Reg addr, Imm offset, Block parent) {
     super(parent);
-    this.rs1 = rs1;
-    this.rs2 = rs2;
+    this.rs1 = addr;
+    this.rs2 = val;
     this.offset = offset;
   }
 

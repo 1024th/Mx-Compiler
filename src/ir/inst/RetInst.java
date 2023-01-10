@@ -15,13 +15,16 @@ public class RetInst extends BaseInst {
     addOperand(val);
   }
 
+  public Value val() {
+    return this.getOperand(0);
+  }
+
   @Override
   public String toString() {
     if (this.type instanceof VoidType) {
       return "ret void";
     }
-    var val = this.getOperand(0);
-    return "ret %s".formatted(val.typedName());
+    return "ret %s".formatted(val().typedName());
   }
 
   @Override
