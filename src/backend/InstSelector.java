@@ -166,10 +166,14 @@ public class InstSelector implements ir.IRVisitor {
       case "mul", "sdiv", "srem" -> false;
       default -> true;
     };
+    boolean commutative = switch (op) {
+      case "add", "and", "or", "xor", "mul" -> true;
+      default -> false;
+    };
     var op1 = inst.op1();
     var op2 = inst.op2();
     if (hasIType) {
-      if (!op.equals("sub") && op1 instanceof ir.constant.IntConst) {
+      if (commutative && op1 instanceof ir.constant.IntConst) {
         var tmp = op1;
         op1 = op2;
         op2 = tmp;
