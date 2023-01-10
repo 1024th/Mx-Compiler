@@ -168,7 +168,7 @@ public class InstSelector implements ir.IRVisitor {
     var op1 = inst.op1();
     var op2 = inst.op2();
     if (hasIType) {
-      if (op1 instanceof ir.constant.IntConst) {
+      if (!op.equals("sub") && op1 instanceof ir.constant.IntConst) {
         var tmp = op1;
         op1 = op2;
         op2 = tmp;
