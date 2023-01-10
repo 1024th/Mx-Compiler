@@ -16,8 +16,7 @@ public class IntType extends BaseType {
 
   @Override
   public int size() {
-    // return (this.bitWidth - 1) / 8 + 1;
-    return 4;
+    return (this.bitWidth - 1) / 8 + 1;
   }
 
   @Override

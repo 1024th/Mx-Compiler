@@ -243,8 +243,13 @@ public class InstSelector implements ir.IRVisitor {
       // array, element type will only be int/bool/pointer (will not be char)
       // getelementptr inbounds int, int* %arr, i32 index
       // TODO optimize
-      var tmp = new VirtualReg();
-      new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(2), curBlock);
+      Reg tmp;
+      if (ptrElemType.size() < 4) {
+        tmp = getReg(inst.getOperand(1));
+      } else {
+        tmp = new VirtualReg();
+        new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(2), curBlock);
+      }
       new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     }
   }
@@ -338,7 +343,9 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(ZextInst inst) {
-    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
+    var tmp = new VirtualReg();
+    new ITypeInst("andi", tmp, getReg(inst.getOperand(0)), new Imm(1), curBlock);
+    new MvInst(getReg(inst), tmp, curBlock);
   }
 
 }
