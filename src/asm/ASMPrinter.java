@@ -11,20 +11,21 @@ public class ASMPrinter implements ModulePass, FuncPass, BlockPass {
 
   @Override
   public void runOnModule(Module module) {
-    if (module.globalVars.size() > 0)
-      p.println("\t.data");
     for (var v : module.globalVars) {
-      p.printf("\t.globl\t%s\n", v.name);
+      p.printf("\t.data\n");
+      p.printf("\t.globl %s\n", v.name);
       p.printf("%s:\n", v.name);
-      p.printf("\t%s\t%d\n", v.size == 4 ? ".word" : ".byte", v.initVal);
+      if (v.size == 1)
+        p.printf("\t.byte %d\n", v.initVal);
+      else
+        p.printf("\t.word %d\n", v.initVal);
     }
 
-    if (module.stringConsts.size() > 0)
-      p.println("\t.rodata\n");
     for (var s : module.stringConsts) {
-      p.printf("\t.globl\t%s\n", s.name);
+      p.printf("\t.rodata\n");
+      p.printf("\t.globl %s\n", s.name);
       p.printf("%s:\n", s.name);
-      p.printf("\t.asciz\t\"%s\"\n", s.escaped());
+      p.printf("\t.asciz \"%s\"\n", s.escaped());
     }
 
     p.println("\t.text");
