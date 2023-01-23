@@ -1,5 +1,7 @@
 package asm.inst;
 
+import java.util.HashSet;
+
 import asm.Block;
 import asm.operand.Imm;
 import asm.operand.Reg;
@@ -28,5 +30,18 @@ public class StoreInst extends BaseInst {
   @Override
   public void accept(asm.InstVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public HashSet<Reg> uses() {
+    var ret = new HashSet<Reg>();
+    ret.add(rs1);
+    ret.add(rs2);
+    return ret;
+  }
+
+  @Override
+  public HashSet<Reg> defs() {
+    return new HashSet<>();
   }
 }

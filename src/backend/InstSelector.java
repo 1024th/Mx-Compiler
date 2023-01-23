@@ -71,7 +71,13 @@ public class InstSelector implements ir.IRVisitor {
       s.asm = new StringConst(s.name.substring(1), s.val);
       module.stringConsts.add((StringConst) s.asm);
     }
+
     // functions
+    for (var i : irModule.funcs)
+      i.asm = new asm.Function(i.name.substring(1));
+    for (var i : irModule.funcDecls)
+      i.asm = new asm.Function(i.name.substring(1));
+
     for (var i : irModule.funcs) {
       i.accept(this);
     }
@@ -80,7 +86,7 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(ir.Function func) {
     // remove '@' in front of the function name
-    curFunc = new asm.Function(func.name.substring(1));
+    curFunc = (asm.Function) func.asm;
     module.funcs.add(curFunc);
     VirtualReg.cnt = 0;
 
@@ -216,7 +222,7 @@ public class InstSelector implements ir.IRVisitor {
       }
     }
 
-    new asm.inst.CallInst(inst.getFunc().name.substring(1), curBlock);
+    new asm.inst.CallInst((asm.Function) inst.getFunc().asm, curBlock);
 
     if (!(inst.type instanceof ir.type.VoidType)) {
       new MvInst(getReg(inst), a0, curBlock);

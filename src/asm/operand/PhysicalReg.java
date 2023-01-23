@@ -1,7 +1,7 @@
 package asm.operand;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class PhysicalReg extends Reg {
   public String name;
@@ -11,8 +11,8 @@ public class PhysicalReg extends Reg {
   }
 
   public static HashMap<String, PhysicalReg> regMap = new HashMap<>();
-  public static ArrayList<PhysicalReg> callerSaved = new ArrayList<>();
-  public static ArrayList<PhysicalReg> calleeSaved = new ArrayList<>();
+  public static HashSet<PhysicalReg> callerSaved = new HashSet<>();
+  public static HashSet<PhysicalReg> calleeSaved = new HashSet<>();
   static {
     regMap.put("zero", new PhysicalReg("zero"));
     regMap.put("ra", new PhysicalReg("ra"));

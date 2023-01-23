@@ -105,7 +105,7 @@ public class RegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass
 
   @Override
   public void visit(MvInst inst) {
-    inst.rs1 = regAllocRead(inst.rs1, t0);
+    inst.rs = regAllocRead(inst.rs, t0);
     curBlock.addInst(inst);
     inst.rd = regAllocWrite(inst.rd, t0);
   }

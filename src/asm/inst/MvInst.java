@@ -1,24 +1,40 @@
 package asm.inst;
 
+import java.util.HashSet;
+
 import asm.Block;
 import asm.operand.Reg;
 
 public class MvInst extends BaseInst {
-  public Reg rd, rs1;
+  public Reg rd, rs;
 
-  public MvInst(Reg rd, Reg rs1, Block parent) {
+  public MvInst(Reg rd, Reg rs, Block parent) {
     super(parent);
     this.rd = rd;
-    this.rs1 = rs1;
+    this.rs = rs;
   }
 
   @Override
   public String toString() {
-    return "mv %s, %s".formatted(rd, rs1);
+    return "mv %s, %s".formatted(rd, rs);
   }
 
   @Override
   public void accept(asm.InstVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public HashSet<Reg> uses() {
+    var ret = new HashSet<Reg>();
+    ret.add(rs);
+    return ret;
+  }
+
+  @Override
+  public HashSet<Reg> defs() {
+    var ret = new HashSet<Reg>();
+    ret.add(rd);
+    return ret;
   }
 }
