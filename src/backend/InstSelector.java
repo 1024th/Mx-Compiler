@@ -94,6 +94,15 @@ public class InstSelector implements ir.IRVisitor {
       i.asm = new Block(i.name);
       curFunc.blocks.add((Block) i.asm);
     }
+    curFunc.entryBlock = (Block) func.entryBlock.asm;
+    curFunc.exitBlock = (Block) func.exitBlock.asm;
+
+    // build control flow graph for asm.Block
+    for (var i : func.blocks) {
+      var asmBlock = (asm.Block) i.asm;
+      i.prevs.forEach(b -> asmBlock.prevs.add((asm.Block) b.asm));
+      i.nexts.forEach(b -> asmBlock.nexts.add((asm.Block) b.asm));
+    }
     curBlock = (Block) func.entryBlock.asm;
 
     // decrease sp

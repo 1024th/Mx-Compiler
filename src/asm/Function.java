@@ -7,6 +7,7 @@ import asm.operand.Reg;
 public class Function extends Operand {
   public String label;
   public ArrayList<Block> blocks = new ArrayList<>();
+  public Block entryBlock, exitBlock;
   public ArrayList<Reg> args = new ArrayList<>();
 
   /** stack usage */

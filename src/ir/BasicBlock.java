@@ -15,6 +15,9 @@ public class BasicBlock extends Value {
 
   public boolean terminated = false;
 
+  /** for control flow graph */
+  public ArrayList<BasicBlock> prevs = new ArrayList<>(), nexts = new ArrayList<>();
+
   public BasicBlock(String name, Function parent) {
     super(new LabelType(), name);
     this.parent = parent;
