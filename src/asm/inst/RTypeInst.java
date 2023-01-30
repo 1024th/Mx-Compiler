@@ -41,4 +41,18 @@ public class RTypeInst extends BaseInst {
     ret.add(rd);
     return ret;
   }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+    if (rs1 == oldReg)
+      rs1 = newReg;
+    if (rs2 == oldReg)
+      rs2 = newReg;
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
+    if (rd == oldReg)
+      rd = newReg;
+  }
 }

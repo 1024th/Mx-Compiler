@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 import asm.ASMPrinter;
 import backend.InstSelector;
-import backend.RegAllocator;
+import backend.StupidRegAllocator;
 import backend.StackAllocator;
 import frontend.FrontEnd;
 import grammar.MxLexer;
@@ -33,7 +33,7 @@ public class Compiler {
 
     var asmModule = new asm.Module();
     new InstSelector(asmModule).visit(middleEnd.irModule);
-    new RegAllocator().runOnModule(asmModule);
+    new StupidRegAllocator().runOnModule(asmModule);
     new StackAllocator().runOnModule(asmModule);
 
     var asmFile = new FileOutputStream("output.s");

@@ -30,7 +30,7 @@ public class CallInst extends BaseInst {
   public HashSet<Reg> uses() {
     var ret = new HashSet<Reg>();
     for (int i = 0; i < func.args.size() && i < 8; ++i) {
-      ret.add(PhysicalReg.regMap.get("a" + i));
+      ret.add(PhysicalReg.regA(i));
     }
     return ret;
   }
@@ -38,5 +38,13 @@ public class CallInst extends BaseInst {
   @Override
   public HashSet<Reg> defs() {
     return new HashSet<>(PhysicalReg.callerSaved);
+  }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
   }
 }

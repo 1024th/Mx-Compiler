@@ -16,8 +16,12 @@ public class Block extends Operand {
   /** for liveness analysis */
   public HashSet<Reg> liveIn = new HashSet<>(), liveOut = new HashSet<>();
 
-  public Block(String label) {
+  /** for register allocation */
+  public int loopDepth;
+
+  public Block(String label, int loopDepth) {
     this.label = label;
+    this.loopDepth = loopDepth;
   }
 
   public void addInst(BaseInst inst) {

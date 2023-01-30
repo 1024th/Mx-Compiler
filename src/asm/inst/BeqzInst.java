@@ -36,4 +36,14 @@ public class BeqzInst extends BaseInst {
   public HashSet<Reg> defs() {
     return new HashSet<Reg>();
   }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+    if (rs == oldReg)
+      rs = newReg;
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
+  }
 }

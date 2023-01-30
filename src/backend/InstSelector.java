@@ -18,13 +18,9 @@ public class InstSelector implements ir.IRVisitor {
   asm.Function curFunc;
   asm.Block curBlock;
 
-  private final PhysicalReg sp = PhysicalReg.regMap.get("sp");
-  private final PhysicalReg ra = PhysicalReg.regMap.get("ra");
-  private final PhysicalReg a0 = PhysicalReg.regMap.get("a0");
-
-  private PhysicalReg RegA(int i) {
-    return PhysicalReg.regMap.get("a" + i);
-  }
+  private final PhysicalReg sp = PhysicalReg.reg("sp");
+  private final PhysicalReg ra = PhysicalReg.reg("ra");
+  private final PhysicalReg a0 = PhysicalReg.reg("a0");
 
   private Integer getConstVal(ir.Value v) {
     Integer constVal = null;
@@ -42,7 +38,7 @@ public class InstSelector implements ir.IRVisitor {
     var constVal = getConstVal(val);
     if (constVal != null) {
       if (constVal == 0) {
-        val.asm = PhysicalReg.regMap.get("zero");
+        val.asm = PhysicalReg.reg("zero");
       } else {
         var reg = new VirtualReg(val.type.size());
         new LiInst(reg, new Imm(constVal), curBlock);
@@ -90,9 +86,9 @@ public class InstSelector implements ir.IRVisitor {
     module.funcs.add(curFunc);
     VirtualReg.cnt = 0;
 
-    for (var i : func.blocks) {
-      i.asm = new Block(i.name);
-      curFunc.blocks.add((Block) i.asm);
+    for (var block : func.blocks) {
+      block.asm = new Block(block.name, block.loopDepth);
+      curFunc.blocks.add((Block) block.asm);
     }
     curFunc.entryBlock = (Block) func.entryBlock.asm;
     curFunc.exitBlock = (Block) func.exitBlock.asm;
@@ -123,7 +119,7 @@ public class InstSelector implements ir.IRVisitor {
     for (int i = 0; i < func.operands.size(); ++i) {
       var arg = func.operands.get(i);
       if (i < 8) {
-        arg.asm = RegA(i);
+        arg.asm = PhysicalReg.regA(i);
       } else {
         var reg = new VirtualReg(4);
         arg.asm = reg;
@@ -223,7 +219,7 @@ public class InstSelector implements ir.IRVisitor {
     for (int i = 0; i + 1 < inst.operands.size(); ++i) {
       var arg = inst.operands.get(i + 1);
       if (i < 8) {
-        new MvInst(RegA(i), getReg(arg), curBlock);
+        new MvInst(PhysicalReg.regA(i), getReg(arg), curBlock);
       } else {
         curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 8);
         var offset = new StackOffset(i - 8, StackOffsetType.putArg);

@@ -44,4 +44,16 @@ public class StoreInst extends BaseInst {
   public HashSet<Reg> defs() {
     return new HashSet<>();
   }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+    if (rs1 == oldReg)
+      rs1 = newReg;
+    if (rs2 == oldReg)
+      rs2 = newReg;
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
+  }
 }

@@ -37,4 +37,16 @@ public class MvInst extends BaseInst {
     ret.add(rd);
     return ret;
   }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+    if (rs == oldReg)
+      rs = newReg;
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
+    if (rd == oldReg)
+      rd = newReg;
+  }
 }

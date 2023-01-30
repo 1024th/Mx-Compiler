@@ -19,5 +19,9 @@ public abstract class BaseInst {
 
   public abstract HashSet<Reg> defs();
 
+  public abstract void replaceUse(Reg oldReg, Reg newReg);
+
+  public abstract void replaceDef(Reg oldReg, Reg newReg);
+
   public abstract void accept(InstVisitor visitor);
 }

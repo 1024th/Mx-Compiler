@@ -37,4 +37,14 @@ public class LuiInst extends BaseInst {
     ret.add(rd);
     return ret;
   }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
+    if (rd == oldReg)
+      rd = newReg;
+  }
 }

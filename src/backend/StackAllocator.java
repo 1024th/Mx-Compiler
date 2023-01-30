@@ -64,6 +64,7 @@ public class StackAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPa
 
   @Override
   public void visit(ITypeInst inst) {
+    // increase or decrease sp
     if (inst.imm instanceof StackOffset s) {
       inst.imm = calcStackOff(s);
     }

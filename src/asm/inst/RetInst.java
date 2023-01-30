@@ -24,12 +24,20 @@ public class RetInst extends BaseInst {
   @Override
   public HashSet<Reg> uses() {
     var ret = new HashSet<Reg>();
-    ret.add(PhysicalReg.regMap.get("ra"));
+    ret.add(PhysicalReg.reg("ra"));
     return ret;
   }
 
   @Override
   public HashSet<Reg> defs() {
     return new HashSet<>();
+  }
+
+  @Override
+  public void replaceUse(Reg oldReg, Reg newReg) {
+  }
+
+  @Override
+  public void replaceDef(Reg oldReg, Reg newReg) {
   }
 }
