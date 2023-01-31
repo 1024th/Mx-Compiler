@@ -27,7 +27,7 @@ public class InterferenceGraph {
     }
   }
 
-  public class Node {
+  static public class Node {
     /** the set of nodes that interfere with this node. */
     public HashSet<Reg> adjList = new LinkedHashSet<>();
     /** the list of move instructions associated with this node. */

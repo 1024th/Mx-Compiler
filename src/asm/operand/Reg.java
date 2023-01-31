@@ -9,5 +9,12 @@ public class Reg extends Operand {
   /** stack offset of spilled register */
   public StackOffset stackOffset;
   /** interference graph node */
-  public Node node;
+  public Node node = new Node();
+
+  @Override
+  public String toString() {
+    if (color == null)
+      return this.getClass().getName() + "@" + Integer.toHexString(this.hashCode());
+    return color.toString();
+  }
 }

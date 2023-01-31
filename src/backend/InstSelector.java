@@ -69,6 +69,7 @@ public class InstSelector implements ir.IRVisitor {
     }
 
     // functions
+    // remove '@' in front of the function name
     for (var i : irModule.funcs)
       i.asm = new asm.Function(i.name.substring(1));
     for (var i : irModule.funcDecls)
@@ -81,7 +82,6 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(ir.Function func) {
-    // remove '@' in front of the function name
     curFunc = (asm.Function) func.asm;
     module.funcs.add(curFunc);
     VirtualReg.cnt = 0;

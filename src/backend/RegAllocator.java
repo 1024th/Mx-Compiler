@@ -81,6 +81,12 @@ public class RegAllocator {
    */
   final HashSet<Reg> introduced = new HashSet<>();
 
+  public void runOnModule(asm.Module module) {
+    for (var func : module.funcs) {
+      runOnFunc(func);
+    }
+  }
+
   public void runOnFunc(Function func) {
     curFunc = func;
     graphColoring();
@@ -453,28 +459,38 @@ public class RegAllocator {
           curFunc.spilledReg, StackOffsetType.spill);
       curFunc.spilledReg++;
     }
-    // create a temporary register for each def and use of spilled register
+    // create a temporary register for each def and use of spilled register,
+    // remove coalesced moves, apply alias
     for (var block : curFunc.blocks) {
-      var insts = new ArrayList<BaseInst>();
-      for (var inst : block.insts) {
+      var oldInsts = block.insts;
+      block.insts = new ArrayList<BaseInst>();
+      for (var inst : oldInsts) {
         // delete coalesced move
-        if (inst instanceof MvInst mv && mv.rd.color == mv.rs.color)
+        if (inst instanceof MvInst mv && coalescedMoves.contains(mv))
           continue;
 
         for (var reg : inst.uses()) {
+          var regAlias = alias.get(reg);
+          if (regAlias != null && regAlias != reg)
+            inst.replaceUse(reg, regAlias);
+
           if (!spilledNodes.contains(reg))
             continue;
           var tmp = new VirtualReg(((VirtualReg) reg).size);
-          insts.add(new LoadInst(4, tmp, PhysicalReg.sp, reg.stackOffset, block));
+          new LoadInst(4, tmp, PhysicalReg.sp, reg.stackOffset, block);
           inst.replaceUse(reg, tmp);
           introduced.add(tmp);
         }
-        insts.add(inst);
+        block.insts.add(inst);
         for (var reg : inst.defs()) {
+          var regAlias = alias.get(reg);
+          if (regAlias != null && regAlias != reg)
+            inst.replaceDef(reg, regAlias);
+
           if (!spilledNodes.contains(reg))
             continue;
           var tmp = new VirtualReg(((VirtualReg) reg).size);
-          insts.add(new StoreInst(((VirtualReg) reg).size, tmp, PhysicalReg.sp, reg.stackOffset, block));
+          new StoreInst(((VirtualReg) reg).size, tmp, PhysicalReg.sp, reg.stackOffset, block);
           inst.replaceDef(reg, tmp);
           introduced.add(tmp);
         }

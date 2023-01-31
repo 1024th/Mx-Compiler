@@ -32,6 +32,8 @@ public class PhysicalReg extends Reg {
     regMap.put("zero", zero);
     regMap.put("ra", ra);
     regMap.put("sp", sp);
+    callerSaved.add(ra);
+    calleeSaved.add(sp);
     for (int i = 0; i < 7; ++i) {
       var reg = new PhysicalReg("t" + i);
       regMap.put("t" + i, reg);
