@@ -90,6 +90,7 @@ public class RegAllocator {
   public void runOnFunc(Function func) {
     curFunc = func;
     graphColoring();
+    removeUselessMv();
   }
 
   public void graphColoring() {
@@ -113,6 +114,18 @@ public class RegAllocator {
     if (!spilledNodes.isEmpty()) {
       rewriteProgram();
       graphColoring();
+    }
+  }
+
+  void removeUselessMv() {
+    for (var block : curFunc.blocks) {
+      var oldInsts = block.insts;
+      block.insts = new ArrayList<BaseInst>();
+      for (var inst : oldInsts) {
+        if (inst instanceof MvInst mv && mv.rs.color == mv.rd.color)
+          continue;
+        block.insts.add(inst);
+      }
     }
   }
 
@@ -466,8 +479,9 @@ public class RegAllocator {
       block.insts = new ArrayList<BaseInst>();
       for (var inst : oldInsts) {
         // delete coalesced move
-        if (inst instanceof MvInst mv && coalescedMoves.contains(mv))
+        if (inst instanceof MvInst mv && coalescedMoves.contains(mv)) {
           continue;
+        }
 
         for (var reg : inst.uses()) {
           var regAlias = alias.get(reg);
