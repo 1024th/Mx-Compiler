@@ -26,14 +26,6 @@ public class PhysicalReg extends Reg {
   // @formatter:on
 
   static {
-    zero = new PhysicalReg("zero");
-    ra = new PhysicalReg("ra");
-    sp = new PhysicalReg("sp");
-    regMap.put("zero", zero);
-    regMap.put("ra", ra);
-    regMap.put("sp", sp);
-    callerSaved.add(ra);
-    calleeSaved.add(sp);
     for (int i = 0; i < 7; ++i) {
       var reg = new PhysicalReg("t" + i);
       regMap.put("t" + i, reg);
@@ -51,6 +43,15 @@ public class PhysicalReg extends Reg {
     }
     assignable.addAll(callerSaved);
     assignable.addAll(calleeSaved);
+
+    zero = new PhysicalReg("zero");
+    ra = new PhysicalReg("ra");
+    sp = new PhysicalReg("sp");
+    regMap.put("zero", zero);
+    regMap.put("ra", ra);
+    regMap.put("sp", sp);
+    callerSaved.add(ra);
+    calleeSaved.add(sp);
   }
 
   public String toString() {
