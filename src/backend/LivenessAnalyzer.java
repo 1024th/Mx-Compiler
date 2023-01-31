@@ -48,6 +48,9 @@ public class LivenessAnalyzer implements asm.FuncPass {
     queue.offer(nodeMap.get(func.exitBlock));
     while (!queue.isEmpty()) {
       var node = queue.poll();
+      while (!queue.isEmpty() && queue.peek().equals(node)) {
+        queue.poll();
+      }
       var block = node.block;
 
       // out[n] = U_{s in succ[n]} in[s]

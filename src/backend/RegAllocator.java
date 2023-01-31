@@ -88,6 +88,7 @@ public class RegAllocator {
   }
 
   public void runOnFunc(Function func) {
+    introduced.clear();
     curFunc = func;
     graphColoring();
     removeUselessMv();
@@ -163,7 +164,6 @@ public class RegAllocator {
     for (var reg : initial) {
       reg.color = null;
       reg.node.init(false);
-      alias.remove(reg);
     }
     for (var reg : precolored) {
       reg.color = (PhysicalReg) reg;
