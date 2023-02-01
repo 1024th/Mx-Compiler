@@ -6,7 +6,7 @@ import ir.User;
 import ir.type.BaseType;
 
 public abstract class BaseInst extends User {
-  BasicBlock parent;
+  public BasicBlock parent;
 
   public BaseInst(BaseType type, String name, BasicBlock parent) {
     super(type, name);

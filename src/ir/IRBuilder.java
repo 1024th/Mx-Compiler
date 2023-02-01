@@ -831,7 +831,7 @@ public class IRBuilder implements ASTVisitor {
     return "%." + cntName++;
   }
 
-  private String rename(String rawName) {
+  public String rename(String rawName) {
     var cnt = identifiers.get(rawName);
     String name;
     if (cnt == null) {

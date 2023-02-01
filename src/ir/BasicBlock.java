@@ -1,22 +1,37 @@
 package ir;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 import ir.inst.AllocaInst;
 import ir.inst.BaseInst;
+import ir.inst.PhiInst;
 import ir.type.LabelType;
 
 // Basic blocks are Values because they are referenced by instructions such as
 // branches and switch tables. The type of a BasicBlock is "LabelType" because
 // the basic block represents a label to which a branch can jump.
 public class BasicBlock extends Value {
-  public ArrayList<BaseInst> insts = new ArrayList<>();
+  public LinkedList<BaseInst> insts = new LinkedList<>();
+  public ArrayList<PhiInst> phiInsts = new ArrayList<>();
   public Function parent;
 
   public boolean terminated = false;
 
   /** for control flow graph */
   public ArrayList<BasicBlock> prevs = new ArrayList<>(), nexts = new ArrayList<>();
+
+  /** dominators of this node */
+  public HashSet<BasicBlock> doms;
+  /** depth of this node in dominator tree */
+  public int dtDepth;
+  /** children of this node in dominator tree */
+  public ArrayList<BasicBlock> dtChildren = new ArrayList<>();
+  /** immediate dominator of this node */
+  public BasicBlock idom;
+  /** dominance frontier */
+  public ArrayList<BasicBlock> df;
 
   /** for register allocation and optimize */
   public int loopDepth;
@@ -56,6 +71,11 @@ public class BasicBlock extends Value {
   @Override
   public String name() {
     return "%" + this.name;
+  }
+
+  @Override
+  public String toString() {
+    return name();
   }
 
   public void accept(IRVisitor visitor) {

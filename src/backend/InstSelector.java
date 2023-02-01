@@ -363,4 +363,7 @@ public class InstSelector implements ir.IRVisitor {
     new MvInst(getReg(inst), tmp, curBlock);
   }
 
+  @Override
+  public void visit(PhiInst inst) {
+  }
 }

@@ -1,12 +1,12 @@
 package utils;
 
-import java.util.ArrayList;
+import java.util.Collection;
 
 public class TextUtils {
   /** java equivalent of python code 
    * {@code sep.join([fmt.getString(x) for x in arr])}
    */
-  public static <T> String join(ArrayList<T> arr, String sep, Formatter<T> fmt) {
+  public static <T> String join(Collection<T> arr, String sep, Formatter<T> fmt) {
     var it = arr.iterator();
     if (!it.hasNext())
       return "";
@@ -23,14 +23,14 @@ public class TextUtils {
   /** java equivalent of python code 
    * {@code ", ".join([fmt.getString(x) for x in arr])}
    */
-  public static <T> String join(ArrayList<T> arr, Formatter<T> fmt) {
+  public static <T> String join(Collection<T> arr, Formatter<T> fmt) {
     return join(arr, ", ", fmt);
   }
 
   /** java equivalent of python code 
    * {@code ", ".join([x.toString() for x in arr])}
    */
-  public static <T> String join(ArrayList<T> arr) {
+  public static <T> String join(Collection<T> arr) {
     return join(arr, ", ", x -> x.toString());
   }
 }

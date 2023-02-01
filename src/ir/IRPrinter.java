@@ -59,6 +59,12 @@ public class IRPrinter {
 
   public void print(BasicBlock block) {
     p.printf("%s:\n", block.name);
+    p.printf("; doms: %s\n", TextUtils.join(block.doms));
+    p.printf("; idom: %s\n", block.idom);
+    p.printf("; dtChildren: %s\n", TextUtils.join(block.dtChildren));
+    for (var i: block.phiInsts) {
+      p.println("  " + i);
+    }
     for (var i: block.insts) {
       p.println("  " + i);
     }
