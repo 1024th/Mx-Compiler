@@ -16,6 +16,7 @@ public interface IRVisitor {
   public void visit(GetElementPtrInst inst);
   public void visit(IcmpInst inst);
   public void visit(LoadInst inst);
+  public void visit(MoveInst inst);
   public void visit(PhiInst inst);
   public void visit(RetInst inst);
   public void visit(StoreInst inst);

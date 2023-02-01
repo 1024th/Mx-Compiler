@@ -57,6 +57,10 @@ public class BasicBlock extends Value {
       this.terminated = true;
   }
 
+  public void addInstBeforeTerminator(BaseInst inst) {
+    insts.add(insts.size() - 1, inst);
+  }
+
   public void addAlloca(AllocaInst allocaInst) {
     for (int i = 0; i < insts.size(); ++i) {
       var inst = insts.get(i);

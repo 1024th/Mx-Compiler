@@ -366,4 +366,9 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(PhiInst inst) {
   }
+
+  @Override
+  public void visit(MoveInst inst) {
+    new MvInst(getReg(inst.dest()), getReg(inst.src()), curBlock);
+  }
 }

@@ -28,11 +28,14 @@ public class MiddleEnd {
     var mem2reg = new Mem2Reg(irBuilder);
     this.irModule.funcs.forEach(func -> mem2reg.runOnFunc(func));
 
-    // TODO: phi elimination
-
     llFile = new FileOutputStream("out-mem2reg.ll");
-    ll = new PrintStream(llFile);
-    irPrinter.p = ll;
+    irPrinter.p = ll = new PrintStream(llFile);
+    irPrinter.print(this.irModule);
+    llFile.close();
+
+    new PhiElimination().runOnModule(irModule);
+    llFile = new FileOutputStream("out-phi-elim.ll");
+    irPrinter.p = ll = new PrintStream(llFile);
     irPrinter.print(this.irModule);
     llFile.close();
   }

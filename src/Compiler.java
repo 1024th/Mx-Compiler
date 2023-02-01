@@ -33,11 +33,16 @@ public class Compiler {
 
     var asmModule = new asm.Module();
     new InstSelector(asmModule).visit(middleEnd.irModule);
+    var asmFile = new FileOutputStream("output.s.no.regalloc");
+    var asm = new PrintStream(asmFile);
+    new ASMPrinter(asm).runOnModule(asmModule);
+    asmFile.close();
+
     new RegAllocator().runOnModule(asmModule);
     new StackAllocator().runOnModule(asmModule);
 
-    var asmFile = new FileOutputStream("output.s");
-    var asm = new PrintStream(asmFile);
+    asmFile = new FileOutputStream("output.s");
+    asm = new PrintStream(asmFile);
     new ASMPrinter(asm).runOnModule(asmModule);
     asmFile.close();
 
