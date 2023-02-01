@@ -12,6 +12,7 @@ public class User extends Value {
   }
 
   public void addOperand(Value v) {
+    v.addUser(this);
     this.operands.add(v);
   }
 

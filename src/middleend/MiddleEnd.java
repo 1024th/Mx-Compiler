@@ -19,14 +19,20 @@ public class MiddleEnd {
     var cfg = new CFGBuilder();
     this.irModule.funcs.forEach(func -> cfg.runOnFunc(func));
 
+    var llFile = new FileOutputStream("out.ll");
+    var ll = new PrintStream(llFile);
+    var irPrinter = new IRPrinter(ll, "input.mx");
+    irPrinter.print(this.irModule);
+    llFile.close();
+
     var mem2reg = new Mem2Reg(irBuilder);
     this.irModule.funcs.forEach(func -> mem2reg.runOnFunc(func));
 
     // TODO: phi elimination
 
-    var llFile = new FileOutputStream("out.ll");
-    var ll = new PrintStream(llFile);
-    var irPrinter = new IRPrinter(ll, "input.mx");
+    llFile = new FileOutputStream("out-mem2reg.ll");
+    ll = new PrintStream(llFile);
+    irPrinter.p = ll;
     irPrinter.print(this.irModule);
     llFile.close();
   }

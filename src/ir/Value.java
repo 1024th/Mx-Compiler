@@ -17,6 +17,10 @@ public class Value {
     this.name = name;
   }
 
+  public void addUser(User user) {
+    users.add(user);
+  }
+
   // Change all uses of this to point to a new Value
   public void replaceAllUsesWith(Value v) {
     for (var user : users) {

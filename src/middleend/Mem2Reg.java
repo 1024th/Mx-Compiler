@@ -14,6 +14,8 @@ import ir.inst.PhiInst;
 import ir.inst.StoreInst;
 import ir.type.PointerType;
 import ir.BasicBlock;
+import ir.constant.IntConst;
+import ir.constant.NullptrConst;
 
 /** Prerequisite: CFGBuilder */
 public class Mem2Reg {
@@ -47,9 +49,11 @@ public class Mem2Reg {
   void insertPhiFor(ir.Function func, BaseInst alloca) {
     Queue<BasicBlock> queue = new ArrayDeque<>();
     var visited = new HashSet<BasicBlock>();
+    queue.add(alloca.parent);
     for (var user : alloca.users) {
-      if (user instanceof StoreInst st && st.ptr() == alloca)
+      if (user instanceof StoreInst st && st.ptr() == alloca) {
         queue.offer(st.parent); // add all defs to queue
+      }
     }
     while (!queue.isEmpty()) {
       var node = queue.poll();
@@ -97,7 +101,14 @@ public class Mem2Reg {
     var iter = block.insts.iterator();
     while (iter.hasNext()) {
       var inst = iter.next();
-      if (inst instanceof AllocaInst) {
+      if (inst instanceof AllocaInst alloca) {
+        ir.Value val;
+        if (((PointerType) alloca.type).elemType instanceof PointerType)
+          val = new NullptrConst();
+        else
+          val = new IntConst(0);
+        updateReplace(alloca.name, val);
+        popList.add(alloca.name);
         iter.remove();
       }
       if (inst instanceof StoreInst store) {
@@ -115,11 +126,6 @@ public class Mem2Reg {
           continue;
         var name = ptr.name;
         var replace = getReplace(name);
-        if (replace == null) {
-          if (!(ptr instanceof ir.constant.GlobalVariable))
-            System.out.printf("Warning: use of uninitialized value %s\n", name);
-          continue;
-        }
         inst.replaceAllUsesWith(replace);
         iter.remove();
       }

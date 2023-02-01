@@ -5,8 +5,8 @@ import java.io.PrintStream;
 import utils.TextUtils;
 
 public class IRPrinter {
-  private PrintStream p;
-  private String fileName;
+  public PrintStream p;
+  public String fileName;
 
   public IRPrinter(PrintStream p, String fileName) {
     this.p = p;
@@ -43,7 +43,7 @@ public class IRPrinter {
     p.printf("define %s %s(%s) {\n",
         type.retType, func.name,
         TextUtils.join(func.operands, x -> x.typedName()));
-    for (var i: func.blocks) {
+    for (var i : func.blocks) {
       this.print(i);
       p.println();
     }
@@ -58,14 +58,11 @@ public class IRPrinter {
   }
 
   public void print(BasicBlock block) {
-    p.printf("%s:\n", block.name);
-    p.printf("; doms: %s\n", TextUtils.join(block.doms));
-    p.printf("; idom: %s\n", block.idom);
-    p.printf("; dtChildren: %s\n", TextUtils.join(block.dtChildren));
-    for (var i: block.phiInsts) {
+    p.printf("%s:  ; preds = %s\n", block.name, TextUtils.join(block.prevs));
+    for (var i : block.phiInsts) {
       p.println("  " + i);
     }
-    for (var i: block.insts) {
+    for (var i : block.insts) {
       p.println("  " + i);
     }
   }

@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.PriorityQueue;
 
 import ir.BasicBlock;
+import utils.TextUtils;
 
 /** Dominator Tree Builder */
 public class DomTreeBuilder {
@@ -25,6 +26,19 @@ public class DomTreeBuilder {
 
     computeDoms(func);
     computeIDom(func);
+    computeDF(func.entryBlock);
+
+    // func.blocks.forEach(this::debugPrint);
+  }
+
+  void debugPrint(BasicBlock block) {
+    var p = System.out;
+    p.printf("%s:\n", block.name);
+    p.printf("; doms: %s\n", TextUtils.join(block.doms));
+    p.printf("; idom: %s\n", block.idom);
+    if (!block.dtChildren.isEmpty())
+      p.printf("; dtChildren: %s\n", TextUtils.join(block.dtChildren));
+    p.printf("; df: %s\n", TextUtils.join(block.df));
   }
 
   void computeDoms(ir.Function func) {
@@ -56,12 +70,14 @@ public class DomTreeBuilder {
     while (changed) {
       changed = false;
       for (var block : dfnOrder) {
-        if (block.dtDepth != 0) continue;
+        if (block.dtDepth != 0)
+          continue;
         boolean finished = true;
         int depth = 0;
         BasicBlock idom = null;
         for (var d : block.doms) {
-          if (d == block) continue;
+          if (d == block)
+            continue;
           if (d.dtDepth == 0) {
             finished = false;
             break;
