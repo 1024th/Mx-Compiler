@@ -10,32 +10,32 @@ import ir.IRPrinter;
 public class MiddleEnd {
   public IRBuilder irBuilder;
   public ir.Module irModule;
+  private boolean debug;
 
-  public MiddleEnd(FrontEnd frontEnd) throws Exception {
+  public MiddleEnd(FrontEnd frontEnd, boolean debug) throws Exception {
+    this.debug = debug;
     this.irBuilder = new IRBuilder(frontEnd.gScope);
     this.irBuilder.visit(frontEnd.astRootNode);
     this.irModule = this.irBuilder.module;
 
     var cfg = new CFGBuilder();
     this.irModule.funcs.forEach(func -> cfg.runOnFunc(func));
-
-    var llFile = new FileOutputStream("out.ll");
-    var ll = new PrintStream(llFile);
-    var irPrinter = new IRPrinter(ll, "input.mx");
-    irPrinter.print(this.irModule);
-    llFile.close();
+    debugPrint("out.ll");
 
     var mem2reg = new Mem2Reg(irBuilder);
     this.irModule.funcs.forEach(func -> mem2reg.runOnFunc(func));
-
-    llFile = new FileOutputStream("out-mem2reg.ll");
-    irPrinter.p = ll = new PrintStream(llFile);
-    irPrinter.print(this.irModule);
-    llFile.close();
+    debugPrint("out-mem2reg.ll");
 
     new PhiElimination().runOnModule(irModule);
-    llFile = new FileOutputStream("out-phi-elim.ll");
-    irPrinter.p = ll = new PrintStream(llFile);
+    debugPrint("out-phi-elim.ll");
+  }
+
+  void debugPrint(String filename) throws Exception {
+    if (this.debug == false)
+      return;
+    var llFile = new FileOutputStream(filename);
+    var ll = new PrintStream(llFile);
+    var irPrinter = new IRPrinter(ll, "input.mx");
     irPrinter.print(this.irModule);
     llFile.close();
   }
