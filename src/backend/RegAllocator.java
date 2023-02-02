@@ -215,7 +215,7 @@ public class RegAllocator {
           worklistMoves.add(mv);
         }
 
-        lives.add(PhysicalReg.reg("zero"));
+        lives.add(PhysicalReg.zero);
         lives.addAll(defs);
         for (var def : defs) {
           for (var live : lives)

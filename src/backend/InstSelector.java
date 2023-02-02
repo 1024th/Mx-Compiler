@@ -119,7 +119,8 @@ public class InstSelector implements ir.IRVisitor {
     for (int i = 0; i < func.operands.size(); ++i) {
       var arg = func.operands.get(i);
       if (i < 8) {
-        arg.asm = PhysicalReg.regA(i);
+        arg.asm = new VirtualReg();
+        new MvInst((Reg) arg.asm, PhysicalReg.regA(i), curBlock);
       } else {
         var reg = new VirtualReg(4);
         arg.asm = reg;
