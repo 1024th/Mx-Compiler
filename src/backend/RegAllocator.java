@@ -1,7 +1,7 @@
 package backend;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -19,6 +19,7 @@ import asm.operand.StackOffset;
 import asm.operand.VirtualReg;
 import asm.operand.StackOffset.StackOffsetType;
 import backend.InterferenceGraph.Edge;
+import backend.InterferenceGraph.Node;
 
 public class RegAllocator {
   /**
@@ -75,6 +76,14 @@ public class RegAllocator {
   final static int K = PhysicalReg.assignable.size();
   Function curFunc;
   InterferenceGraph G = new InterferenceGraph();
+
+  /**
+   * The followings are used to coalesce and color spilled registers.
+   */
+  final HashSet<MvInst> worklistMovesSpilled = new LinkedHashSet<>();
+  final HashSet<Reg> coalescedSpilledNodes = new LinkedHashSet<>();
+  /** interference graph for spilled registers */
+  InterferenceGraph GSpilled = new InterferenceGraph();
   /**
    * Temporary registers introduced by the load and store of
    * previously spilled registers.
@@ -113,6 +122,10 @@ public class RegAllocator {
 
     assignColors();
     if (!spilledNodes.isEmpty()) {
+      initSpilled();
+      buildSpilled();
+      coalesceSpilled();
+      assignColorsSpilled();
       rewriteProgram();
       graphColoring();
     }
@@ -182,6 +195,15 @@ public class RegAllocator {
     }
   }
 
+  void initSpilled() {
+    coalescedSpilledNodes.clear();
+    worklistMovesSpilled.clear();
+    GSpilled.init();
+    for (var node : spilledNodes) {
+      node.nodeSpilled.init(false);
+    }
+  }
+
   /**
    * Constructs the interference graph using the results of static
    * liveness analysis, and initializes the {@code worklistMoves} to
@@ -218,8 +240,44 @@ public class RegAllocator {
         lives.add(PhysicalReg.zero);
         lives.addAll(defs);
         for (var def : defs) {
-          for (var live : lives)
+          for (var live : lives) {
             G.addEdge(live, def);
+          }
+        }
+        lives.removeAll(defs);
+        lives.addAll(uses);
+      }
+    }
+  }
+
+  /** Note: this function changes the input set. */
+  HashSet<Reg> filterSpilled(HashSet<Reg> set) {
+    set.retainAll(spilledNodes);
+    return set;
+  }
+
+  void buildSpilled() {
+    for (var block : curFunc.blocks) {
+      var lives = filterSpilled(new HashSet<>(block.liveOut));
+
+      // iterate in reverse order
+      for (int i = block.insts.size() - 1; i >= 0; i--) {
+        var inst = block.insts.get(i);
+        var uses = filterSpilled(inst.uses());
+        var defs = filterSpilled(inst.defs());
+        if (inst instanceof MvInst mv) {
+          lives.removeAll(uses);
+          uses.forEach(reg -> reg.nodeSpilled.moveList.add(mv));
+          defs.forEach(reg -> reg.nodeSpilled.moveList.add(mv));
+          if (spilledNodes.contains(mv.rd) && spilledNodes.contains(mv.rs))
+            worklistMovesSpilled.add(mv);
+        }
+
+        lives.addAll(defs);
+        for (var def : defs) {
+          for (var live : lives) {
+            GSpilled.addEdgeSpilled(live, def);
+          }
         }
         lives.removeAll(defs);
         lives.addAll(uses);
@@ -342,8 +400,28 @@ public class RegAllocator {
     }
   }
 
+  void coalesceSpilled() {
+    var iter = worklistMovesSpilled.iterator();
+    while (iter.hasNext()) {
+      var mv = iter.next();
+
+      var u = getAlias(mv.rd);
+      var v = getAlias(mv.rs);
+      var edge = new Edge(u, v);
+      iter.remove();
+
+      if (u == v) {
+        coalescedMoves.add(mv);
+      } else if (!GSpilled.adjSet.contains(edge)) {
+        coalescedMoves.add(mv);
+        combineSpilled(u, v);
+      }
+    }
+  }
+
   Reg getAlias(Reg reg) {
-    if (!coalescedNodes.contains(reg))
+    if (!coalescedNodes.contains(reg) &&
+        !coalescedSpilledNodes.contains(reg))
       return reg;
     var a = getAlias(alias.get(reg));
     alias.put(reg, a);
@@ -400,6 +478,18 @@ public class RegAllocator {
     if (u.node.degree >= K && freezeWorklist.contains(u)) {
       freezeWorklist.remove(u);
       spillWorklist.add(u);
+    }
+  }
+
+  void combineSpilled(Reg u, Reg v) {
+    System.out.printf("combine spilled: %s %s\n", u, v);
+    spilledNodes.remove(v);
+    coalescedSpilledNodes.add(v);
+    alias.put(v, u);
+    u.nodeSpilled.moveList.addAll(v.nodeSpilled.moveList);
+    for (var t : v.nodeSpilled.adjList) {
+      G.addEdge(t, u);
+      t.nodeSpilled.degree--;
     }
   }
 
@@ -466,13 +556,42 @@ public class RegAllocator {
     }
   }
 
-  void rewriteProgram() {
-    // allocate stack memory for each spilled register
+  void assignColorsSpilled() {
+    int i = 0, num = spilledNodes.size();
+    Node[] nodes = new Node[num];
     for (var reg : spilledNodes) {
+      System.out.printf("spilledNodes contains %s\n", reg);
+      nodes[i++] = reg.nodeSpilled;
+    }
+    var colors = new HashSet<Reg>();
+    i = 0;
+    while (i != num) {
+      Arrays.sort(nodes, i, num);
+      var node = nodes[i++];
+      var reg = node.origin;
+      var availColors = new HashSet<>(colors);
+      for (var t : node.adjList) {
+        t = getAlias(t);
+        availColors.remove(t.color);
+        t.nodeSpilled.degree--;
+      }
+      if (availColors.isEmpty()) {
+        colors.add(reg);
+        reg.color = reg;
+      } else {
+        reg.color = availColors.iterator().next();
+      }
+      System.out.printf("spilled %s color: %s\n", reg, reg.color);
+    }
+    // allocate stack memory for spilled registers
+    for (var reg : colors) {
       reg.stackOffset = new StackOffset(
           curFunc.spilledReg, StackOffsetType.spill);
       curFunc.spilledReg++;
     }
+  }
+
+  void rewriteProgram() {
     // create a temporary register for each def and use of spilled register,
     // remove coalesced moves, apply alias
     for (var block : curFunc.blocks) {
@@ -481,31 +600,40 @@ public class RegAllocator {
       for (var inst : oldInsts) {
         // delete coalesced move
         if (inst instanceof MvInst mv && coalescedMoves.contains(mv)) {
+          System.out.printf("delete %s\n", mv);
           continue;
         }
+        if (inst instanceof MvInst)
+          System.out.printf("reserved: %s\n", inst);
 
         for (var reg : inst.uses()) {
           var regAlias = alias.get(reg);
-          if (regAlias != null && regAlias != reg)
+          if (regAlias != null && regAlias != reg) {
             inst.replaceUse(reg, regAlias);
+          } else {
+            regAlias = reg;
+          }
 
-          if (!spilledNodes.contains(reg))
+          if (!spilledNodes.contains(reg) && !coalescedSpilledNodes.contains(reg))
             continue;
           var tmp = new VirtualReg(((VirtualReg) reg).size);
-          new LoadInst(4, tmp, PhysicalReg.sp, reg.stackOffset, block);
+          new LoadInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
           inst.replaceUse(reg, tmp);
           introduced.add(tmp);
         }
         block.insts.add(inst);
         for (var reg : inst.defs()) {
           var regAlias = alias.get(reg);
-          if (regAlias != null && regAlias != reg)
+          if (regAlias != null && regAlias != reg) {
             inst.replaceDef(reg, regAlias);
+          } else {
+            regAlias = reg;
+          }
 
-          if (!spilledNodes.contains(reg))
+          if (!spilledNodes.contains(reg) && !coalescedSpilledNodes.contains(reg))
             continue;
           var tmp = new VirtualReg(((VirtualReg) reg).size);
-          new StoreInst(((VirtualReg) reg).size, tmp, PhysicalReg.sp, reg.stackOffset, block);
+          new StoreInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
           inst.replaceDef(reg, tmp);
           introduced.add(tmp);
         }

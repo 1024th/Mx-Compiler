@@ -27,23 +27,37 @@ public class InterferenceGraph {
     }
   }
 
-  static public class Node {
+  static public class Node implements Comparable<Node> {
     /** the set of nodes that interfere with this node. */
     public HashSet<Reg> adjList = new LinkedHashSet<>();
     /** the list of move instructions associated with this node. */
     public HashSet<MvInst> moveList = new LinkedHashSet<>();
     /**
-     * @apiNote The degree of precolored node (machine register) is
-     *          considered as "infinite" to prevent it from being simplified.
+     * The degree of precolored node (machine register) is considered
+     * as "infinite" to prevent it from being simplified.
      */
     public int degree;
     public double frequency;
+    public Reg origin;
+
+    public Node(Reg origin) {
+      this.origin = origin;
+    }
 
     public void init(boolean precolored) {
       this.adjList.clear();
       this.moveList.clear();
       this.frequency = 0;
       this.degree = precolored ? Integer.MAX_VALUE : 0;
+    }
+
+    @Override
+    public int compareTo(Node o) {
+      if (degree < o.degree)
+        return 1;
+      if (degree > o.degree)
+        return -1;
+      return 0;
     }
   }
 
@@ -69,6 +83,21 @@ public class InterferenceGraph {
         v.node.adjList.add(u);
         v.node.degree++;
       }
+    }
+  }
+
+  public void addEdgeSpilled(Reg u, Reg v) {
+    if (u == v)
+      return;
+    var edge1 = new Edge(u, v);
+    if (!adjSet.contains(edge1)) {
+      var edge2 = new Edge(v, u);
+      adjSet.add(edge1);
+      adjSet.add(edge2);
+      u.nodeSpilled.adjList.add(v);
+      u.nodeSpilled.degree++;
+      v.nodeSpilled.adjList.add(u);
+      v.nodeSpilled.degree++;
     }
   }
 
