@@ -78,11 +78,9 @@ public class RegAllocator {
   InterferenceGraph G = new InterferenceGraph();
 
   /**
-   * The followings are used to coalesce and color spilled registers.
+   * Interference graph for spilled registers, used to color
+   * spilled registers
    */
-  final HashSet<MvInst> worklistMovesSpilled = new LinkedHashSet<>();
-  final HashSet<Reg> coalescedSpilledNodes = new LinkedHashSet<>();
-  /** interference graph for spilled registers */
   InterferenceGraph GSpilled = new InterferenceGraph();
   /**
    * Temporary registers introduced by the load and store of
@@ -124,7 +122,6 @@ public class RegAllocator {
     if (!spilledNodes.isEmpty()) {
       initSpilled();
       buildSpilled();
-      coalesceSpilled();
       assignColorsSpilled();
       rewriteProgram();
       graphColoring();
@@ -196,8 +193,6 @@ public class RegAllocator {
   }
 
   void initSpilled() {
-    coalescedSpilledNodes.clear();
-    worklistMovesSpilled.clear();
     GSpilled.init();
     for (var node : spilledNodes) {
       node.nodeSpilled.init(false);
@@ -269,8 +264,6 @@ public class RegAllocator {
           lives.removeAll(uses);
           uses.forEach(reg -> reg.nodeSpilled.moveList.add(mv));
           defs.forEach(reg -> reg.nodeSpilled.moveList.add(mv));
-          if (spilledNodes.contains(mv.rd) && spilledNodes.contains(mv.rs))
-            worklistMovesSpilled.add(mv);
         }
 
         lives.addAll(defs);
@@ -400,28 +393,8 @@ public class RegAllocator {
     }
   }
 
-  void coalesceSpilled() {
-    var iter = worklistMovesSpilled.iterator();
-    while (iter.hasNext()) {
-      var mv = iter.next();
-
-      var u = getAlias(mv.rd);
-      var v = getAlias(mv.rs);
-      var edge = new Edge(u, v);
-      iter.remove();
-
-      if (u == v) {
-        coalescedMoves.add(mv);
-      } else if (!GSpilled.adjSet.contains(edge)) {
-        coalescedMoves.add(mv);
-        combineSpilled(u, v);
-      }
-    }
-  }
-
   Reg getAlias(Reg reg) {
-    if (!coalescedNodes.contains(reg) &&
-        !coalescedSpilledNodes.contains(reg))
+    if (!coalescedNodes.contains(reg))
       return reg;
     var a = getAlias(alias.get(reg));
     alias.put(reg, a);
@@ -478,18 +451,6 @@ public class RegAllocator {
     if (u.node.degree >= K && freezeWorklist.contains(u)) {
       freezeWorklist.remove(u);
       spillWorklist.add(u);
-    }
-  }
-
-  void combineSpilled(Reg u, Reg v) {
-    System.out.printf("combine spilled: %s %s\n", u, v);
-    spilledNodes.remove(v);
-    coalescedSpilledNodes.add(v);
-    alias.put(v, u);
-    u.nodeSpilled.moveList.addAll(v.nodeSpilled.moveList);
-    for (var t : v.nodeSpilled.adjList) {
-      G.addEdge(t, u);
-      t.nodeSpilled.degree--;
     }
   }
 
@@ -607,14 +568,12 @@ public class RegAllocator {
           System.out.printf("reserved: %s\n", inst);
 
         for (var reg : inst.uses()) {
-          var regAlias = alias.get(reg);
-          if (regAlias != null && regAlias != reg) {
+          var regAlias = getAlias(reg);
+          if (regAlias != reg) {
             inst.replaceUse(reg, regAlias);
-          } else {
-            regAlias = reg;
           }
 
-          if (!spilledNodes.contains(reg) && !coalescedSpilledNodes.contains(reg))
+          if (!spilledNodes.contains(reg))
             continue;
           var tmp = new VirtualReg(((VirtualReg) reg).size);
           new LoadInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
@@ -623,14 +582,12 @@ public class RegAllocator {
         }
         block.insts.add(inst);
         for (var reg : inst.defs()) {
-          var regAlias = alias.get(reg);
-          if (regAlias != null && regAlias != reg) {
+          var regAlias = getAlias(reg);
+          if (regAlias != reg) {
             inst.replaceDef(reg, regAlias);
-          } else {
-            regAlias = reg;
           }
 
-          if (!spilledNodes.contains(reg) && !coalescedSpilledNodes.contains(reg))
+          if (!spilledNodes.contains(reg))
             continue;
           var tmp = new VirtualReg(((VirtualReg) reg).size);
           new StoreInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
