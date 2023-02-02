@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import asm.ASMPrinter;
+import backend.BlockMerging;
 import backend.InstSelector;
 import backend.RegAllocator;
 import backend.StackAllocator;
@@ -42,6 +43,7 @@ public class Compiler {
     }
     new RegAllocator().runOnModule(asmModule);
     new StackAllocator().runOnModule(asmModule);
+    new BlockMerging().runOnModule(asmModule);
 
     var asmFile = new FileOutputStream("output.s");
     var asm = new PrintStream(asmFile);
