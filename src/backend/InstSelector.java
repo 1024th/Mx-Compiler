@@ -223,7 +223,7 @@ public class InstSelector implements ir.IRVisitor {
     for (int i = 0; i + 1 < inst.operands.size(); ++i) {
       var arg = inst.operands.get(i + 1);
       if (i < 8) {
-        new MvInst(PhysicalReg.regA(i), getReg(arg), curBlock);
+        MvOrLi(PhysicalReg.regA(i), arg);
       } else {
         curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 7);
         var offset = new StackOffset(i - 8, StackOffsetType.putArg);
@@ -325,7 +325,7 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(ir.inst.RetInst inst) {
     if (inst.operands.size() != 0) {
-      new MvInst(a0, getReg(inst.val()), curBlock);
+      MvOrLi(a0, inst.val());
     }
   }
 
@@ -350,7 +350,7 @@ public class InstSelector implements ir.IRVisitor {
   // TODO optimize following?
   @Override
   public void visit(BitCastInst inst) {
-    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
+    MvOrLi(getReg(inst), inst.getOperand(0));
   }
 
   @Override
@@ -374,5 +374,13 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(MoveInst inst) {
     new MvInst(getReg(inst.dest()), getReg(inst.src()), curBlock);
+  }
+
+  void MvOrLi(Reg dest, ir.Value src) {
+    var c = getConstVal(src);
+    if (c == null)
+      new MvInst(dest, getReg(src), curBlock);
+    else
+      new LiInst(dest, new Imm(c), curBlock);
   }
 }
