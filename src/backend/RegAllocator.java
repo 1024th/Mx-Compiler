@@ -433,7 +433,7 @@ public class RegAllocator {
       // avoid choosing nodes introduced by the load and store of
       // previously spilled registers
       if (introduced.contains(reg))
-        regCost = Double.POSITIVE_INFINITY - 1;
+        regCost += 1e10;
       if (regCost < minCost) {
         minReg = reg;
         minCost = regCost;
