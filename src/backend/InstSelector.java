@@ -70,8 +70,14 @@ public class InstSelector implements ir.IRVisitor {
 
     // functions
     // remove '@' in front of the function name
-    for (var i : irModule.funcs)
-      i.asm = new asm.Function(i.name.substring(1));
+    for (var func : irModule.funcs) {
+      var asmFunc = new asm.Function(func.name.substring(1));
+      func.asm = asmFunc;
+      for (var arg : func.operands) {
+        arg.asm = new VirtualReg();
+        asmFunc.args.add((Reg) arg.asm);
+      }
+    }
     for (var i : irModule.funcDecls)
       i.asm = new asm.Function(i.name.substring(1));
 
@@ -117,14 +123,11 @@ public class InstSelector implements ir.IRVisitor {
 
     // arguments
     for (int i = 0; i < func.operands.size(); ++i) {
-      var arg = func.operands.get(i);
       if (i < 8) {
-        arg.asm = new VirtualReg();
-        new MvInst((Reg) arg.asm, PhysicalReg.regA(i), curBlock);
+        new MvInst(curFunc.args.get(i), PhysicalReg.regA(i), curBlock);
       } else {
-        var reg = new VirtualReg(4);
-        arg.asm = reg;
-        new LoadInst(4, reg, sp, new StackOffset(i - 8, StackOffsetType.getArg), curBlock);
+        new LoadInst(4, curFunc.args.get(i), sp, new StackOffset(
+            i - 8, StackOffsetType.getArg), curBlock);
       }
     }
 
@@ -222,7 +225,7 @@ public class InstSelector implements ir.IRVisitor {
       if (i < 8) {
         new MvInst(PhysicalReg.regA(i), getReg(arg), curBlock);
       } else {
-        curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 8);
+        curFunc.spilledArg = Math.max(curFunc.spilledArg, i - 7);
         var offset = new StackOffset(i - 8, StackOffsetType.putArg);
         new asm.inst.StoreInst(4, getReg(arg), sp, offset, curBlock);
       }
