@@ -16,7 +16,7 @@ public class Reg extends Operand {
   @Override
   public String toString() {
     if (color == null || color == this)
-      return this.getClass().getName() + "@" + Integer.toHexString(this.hashCode());
+      return super.toString();
     return color.toString();
   }
 }

@@ -9,6 +9,7 @@ import backend.BlockMerging;
 import backend.InstSelector;
 import backend.RegAllocator;
 import backend.StackAllocator;
+import backend.StupidRegAllocator;
 import frontend.FrontEnd;
 import grammar.MxLexer;
 import grammar.MxParser;
@@ -41,7 +42,8 @@ public class Compiler {
       new ASMPrinter(asm).runOnModule(asmModule);
       asmFile.close();
     }
-    new RegAllocator().runOnModule(asmModule);
+    new RegAllocator(debug).runOnModule(asmModule);
+    // new StupidRegAllocator().runOnModule(asmModule);
     new StackAllocator().runOnModule(asmModule);
     new BlockMerging().runOnModule(asmModule);
 

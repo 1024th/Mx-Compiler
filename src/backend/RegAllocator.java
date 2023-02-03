@@ -88,6 +88,12 @@ public class RegAllocator {
    */
   final HashSet<Reg> introduced = new HashSet<>();
 
+  boolean debug;
+
+  public RegAllocator(boolean debug) {
+    this.debug = debug;
+  }
+
   public void runOnModule(asm.Module module) {
     for (var func : module.funcs) {
       runOnFunc(func);
@@ -521,7 +527,8 @@ public class RegAllocator {
     int i = 0, num = spilledNodes.size();
     Node[] nodes = new Node[num];
     for (var reg : spilledNodes) {
-      System.out.printf("spilledNodes contains %s\n", reg);
+      if (debug)
+        System.out.printf("spilledNodes contains %s\n", reg);
       nodes[i++] = reg.nodeSpilled;
     }
     var colors = new HashSet<Reg>();
@@ -530,6 +537,8 @@ public class RegAllocator {
       Arrays.sort(nodes, i, num);
       var node = nodes[i++];
       var reg = node.origin;
+      if (debug)
+        System.out.printf("spilled %s ", reg);
       var availColors = new HashSet<>(colors);
       for (var t : node.adjList) {
         t = getAlias(t);
@@ -542,7 +551,8 @@ public class RegAllocator {
       } else {
         reg.color = availColors.iterator().next();
       }
-      System.out.printf("spilled %s color: %s\n", reg, reg.color);
+      if (debug)
+        System.out.printf("color: %s degree: %s\n", reg.color, node.degree);
     }
     // allocate stack memory for spilled registers
     for (var reg : colors) {
@@ -554,23 +564,17 @@ public class RegAllocator {
 
   void rewriteProgram() {
     // create a temporary register for each def and use of spilled register,
-    // remove coalesced moves, apply alias
+    // apply alias
     for (var block : curFunc.blocks) {
+      if (debug)
+        System.out.printf("rewrite %s:\n", block.label);
       var oldInsts = block.insts;
       block.insts = new ArrayList<BaseInst>();
       for (var inst : oldInsts) {
-        // delete coalesced move
-        if (inst instanceof MvInst mv && coalescedMoves.contains(mv)) {
-          System.out.printf("delete %s\n", mv);
-          continue;
-        }
-        if (inst instanceof MvInst)
-          System.out.printf("reserved: %s\n", inst);
-
         for (var reg : inst.uses()) {
           var regAlias = getAlias(reg);
           if (regAlias != reg) {
-            inst.replaceUse(reg, regAlias);
+            inst.replaceUse(reg, regAlias.color);
           }
 
           if (!spilledNodes.contains(reg))
@@ -584,7 +588,9 @@ public class RegAllocator {
         for (var reg : inst.defs()) {
           var regAlias = getAlias(reg);
           if (regAlias != reg) {
-            inst.replaceDef(reg, regAlias);
+            inst.replaceDef(reg, regAlias.color);
+            if (debug)
+              System.out.printf("replace %s with %s\n", reg, regAlias.color);
           }
 
           if (!spilledNodes.contains(reg))
