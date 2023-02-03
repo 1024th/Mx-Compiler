@@ -383,6 +383,15 @@ public class IRBuilder implements ASTVisitor {
 
     // short-circuit evaluation for '&&' and '||'
     if (node.op.equals("&&")) {
+      if (node.lhs.val instanceof IntConst c) {
+        if (c.val == 0) {
+          node.val = new IntConst(0, 1);
+        } else {
+          node.rhs.accept(this);
+          node.val = node.rhs.val;
+        }
+        return;
+      }
       // a && b
       // bool tmp;
       // if (a) tmp = b;
@@ -403,6 +412,15 @@ public class IRBuilder implements ASTVisitor {
       curBlock = endBlock;
       return;
     } else if (node.op.equals("||")) {
+      if (node.lhs.val instanceof IntConst c) {
+        if (c.val == 1) {
+          node.val = new IntConst(1, 1);
+        } else {
+          node.rhs.accept(this);
+          node.val = node.rhs.val;
+        }
+        return;
+      }
       // a || b
       // bool tmp;
       // if (a) tmp = 1;
@@ -430,6 +448,13 @@ public class IRBuilder implements ASTVisitor {
           nextName(), getStrMethod(node.op), curBlock,
           getValue(node.lhs), getValue(node.rhs));
       return;
+    }
+
+    if (node.lhs.val instanceof IntConst a &&
+        node.rhs.val instanceof IntConst b) {
+      node.val = constCalc(node.op, a, b);
+      if (node.val != null)
+        return;
     }
 
     // @formatter:off
@@ -462,6 +487,39 @@ public class IRBuilder implements ASTVisitor {
       default -> null;
     };
     node.val = newBinary(op, getValue(node.lhs), getValue(node.rhs), "%" + op);
+  }
+
+  Value constCalc(String op, IntConst a, IntConst b) {
+    // @formatter:off
+    Boolean val = switch (op) {
+      case "==" -> a.val == b.val;
+      case "!=" -> a.val != b.val;
+      case ">"  -> a.val >  b.val;
+      case ">=" -> a.val >= b.val;
+      case "<"  -> a.val <  b.val;
+      case "<=" -> a.val <= b.val;
+      default -> null;
+    };
+    // @formatter:on
+    if (val != null) {
+      return new IntConst(val ? 1 : 0, 1);
+    }
+    if (op.equals("/") && b.val == 0)
+      return null; // keeps divided by zero error
+    int val2 = switch (op) {
+      case "+" -> a.val + b.val;
+      case "-" -> a.val - b.val;
+      case "*" -> a.val * b.val;
+      case "/" -> a.val / b.val;
+      case "%" -> a.val % b.val;
+      case "&" -> a.val & b.val;
+      case "|" -> a.val | b.val;
+      case "^" -> a.val ^ b.val;
+      case "<<" -> a.val << b.val;
+      case ">>" -> a.val >> b.val;
+      default -> throw new IRBuildError("unknown operator");
+    };
+    return new IntConst(val2);
   }
 
   @Override
