@@ -1,13 +1,13 @@
 package ir;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedList;
 
 import ir.inst.AllocaInst;
 import ir.inst.BaseInst;
 import ir.inst.PhiInst;
 import ir.type.LabelType;
+import middleend.DomTreeBuilder.Node;
 
 // Basic blocks are Values because they are referenced by instructions such as
 // branches and switch tables. The type of a BasicBlock is "LabelType" because
@@ -22,16 +22,8 @@ public class BasicBlock extends Value {
   /** for control flow graph */
   public ArrayList<BasicBlock> prevs = new ArrayList<>(), nexts = new ArrayList<>();
 
-  /** dominators of this node */
-  public HashSet<BasicBlock> doms;
-  /** depth of this node in dominator tree */
-  public int dtDepth;
-  /** children of this node in dominator tree */
-  public ArrayList<BasicBlock> dtChildren = new ArrayList<>();
-  /** immediate dominator of this node */
-  public BasicBlock idom;
-  /** dominance frontier */
-  public ArrayList<BasicBlock> df;
+  /** node of this block in dominator tree builder */
+  public Node dtNode = new Node(this);
 
   /** for register allocation and optimize */
   public int loopDepth;

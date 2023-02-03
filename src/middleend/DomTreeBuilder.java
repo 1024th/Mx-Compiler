@@ -1,9 +1,7 @@
 package middleend;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.PriorityQueue;
 
 import ir.BasicBlock;
 import utils.TextUtils;
@@ -12,21 +10,9 @@ import utils.TextUtils;
 public class DomTreeBuilder {
 
   public void runOnFunc(ir.Function func) {
-    for (var block : func.blocks) {
-      if (block == func.entryBlock) {
-        block.doms = new HashSet<BasicBlock>();
-        block.doms.add(block);
-      } else {
-        block.doms = new HashSet<>(func.blocks);
-      }
-    }
-
-    dfn = 1;
-    dfs(func.entryBlock);
-
-    computeDoms(func);
     computeIDom(func);
-    computeDF(func.entryBlock);
+    computeChlidren(func);
+    computeDF(func.entryBlock.dtNode);
 
     // func.blocks.forEach(this::debugPrint);
   }
@@ -34,126 +20,137 @@ public class DomTreeBuilder {
   void debugPrint(BasicBlock block) {
     var p = System.out;
     p.printf("%s:\n", block.name);
-    p.printf("; doms: %s\n", TextUtils.join(block.doms));
-    p.printf("; idom: %s\n", block.idom);
-    if (!block.dtChildren.isEmpty())
-      p.printf("; dtChildren: %s\n", TextUtils.join(block.dtChildren));
-    p.printf("; df: %s\n", TextUtils.join(block.df));
+    var node = block.dtNode;
+    p.printf("; idom: %s\n", node.idom);
+    if (!node.children.isEmpty())
+      p.printf("; dtChildren: %s\n", TextUtils.join(node.children));
+    p.printf("; df: %s\n", TextUtils.join(node.domFrontier));
   }
 
-  void computeDoms(ir.Function func) {
-    queue.clear();
-    queue.offer(nodeMap.get(func.entryBlock));
-    while (!queue.isEmpty()) {
-      var node = queue.poll();
-      while (!queue.isEmpty() && queue.peek().equals(node)) {
-        queue.poll();
-      }
-      var block = node.block;
+  void computeChlidren(ir.Function func) {
+    for (var block : func.blocks) {
+      var node = block.dtNode;
+      if (node.idom != null)
+        node.idom.children.add(node);
+    }
+  }
 
-      for (var nxt : block.nexts) {
-        var newNxtDoms = new HashSet<>(nxt.doms);
-        newNxtDoms.retainAll(block.doms);
-        newNxtDoms.add(nxt);
-        if (!newNxtDoms.equals(nxt.doms)) {
-          nxt.doms = newNxtDoms;
-          queue.offer(nodeMap.get(nxt));
-        }
+  void computeDF(Node node) {
+    var S = new HashSet<Node>();
+    for (var nxtBlock : node.origin.nexts) {
+      var nxt = nxtBlock.dtNode;
+      if (nxt.idom != node)
+        S.add(nxt);
+    }
+    for (var c : node.children) {
+      computeDF(c);
+      for (var w : c.domFrontier) {
+        if (!node.isDominatorOf(w))
+          S.add(w);
       }
+    }
+    node.domFrontier.clear();
+    node.domFrontier.addAll(S);
+  }
+
+  static public class Node {
+    public BasicBlock origin;
+    public int dfn;
+    public Node parent;
+    public Node semi, samedom, idom;
+    public ArrayList<Node> bucket = new ArrayList<>();
+    public Node ancestor, best;
+    public ArrayList<Node> children = new ArrayList<>();
+    public ArrayList<Node> domFrontier = new ArrayList<>();
+
+    public Node(BasicBlock origin) {
+      this.origin = origin;
+    }
+
+    public void clear() {
+      dfn = 0;
+      semi = samedom = idom = ancestor = best = null;
+      bucket.clear();
+    }
+
+    public boolean isDominatorOf(Node o) {
+      while (o != null) {
+        if (o.idom == this)
+          return true;
+        o = o.idom;
+      }
+      return false;
+    }
+  }
+
+  ArrayList<Node> dfnOrder = new ArrayList<>();
+
+  private int dfn;
+
+  private void dfs(Node p, Node n) {
+    if (n.dfn != 0)
+      return;
+    n.dfn = dfn;
+    dfnOrder.add(n);
+    n.parent = p;
+    dfn++;
+    for (var succ : n.origin.nexts) {
+      dfs(n, succ.dtNode);
     }
   }
 
   void computeIDom(ir.Function func) {
-    func.entryBlock.dtDepth = 1;
-    func.entryBlock.idom = null;
-    boolean changed = true;
-    while (changed) {
-      changed = false;
-      for (var block : dfnOrder) {
-        if (block.dtDepth != 0)
-          continue;
-        boolean finished = true;
-        int depth = 0;
-        BasicBlock idom = null;
-        for (var d : block.doms) {
-          if (d == block)
-            continue;
-          if (d.dtDepth == 0) {
-            finished = false;
-            break;
-          }
-          if (d.dtDepth >= depth) {
-            depth = d.dtDepth + 1;
-            idom = d;
-          }
-        }
-        if (finished) {
-          block.dtDepth = depth;
-          block.idom = idom;
-          idom.dtChildren.add(block);
-          changed = true;
-        } else {
-          continue;
-        }
+    dfn = 0;
+    dfnOrder.clear();
+    for (var b : func.blocks) {
+      b.dtNode.clear();
+    }
+    dfs(null, func.entryBlock.dtNode);
+    for (int i = dfn - 1; i >= 1; --i) {
+      var n = dfnOrder.get(i);
+      var p = n.parent;
+      var s = p;
+      for (var v : n.origin.prevs) {
+        Node ss;
+        if (v.dtNode.dfn < n.dfn)
+          ss = v.dtNode;
+        else
+          ss = ancestorWithLowestSemi(v.dtNode).semi;
+        if (ss.dfn < s.dfn)
+          s = ss;
       }
-    }
-  }
-
-  void computeSons(ir.Function func) {
-    for (var block : func.blocks) {
-      block.idom.dtChildren.add(block);
-    }
-  }
-
-  void computeDF(BasicBlock block) {
-    var S = new HashSet<BasicBlock>();
-    for (var nxt : block.nexts) {
-      if (nxt.idom != block)
-        S.add(nxt);
-    }
-    for (var c : block.dtChildren) {
-      computeDF(c);
-      for (var w : c.df) {
-        if (!w.doms.contains(block))
-          S.add(w);
+      n.semi = s;
+      s.bucket.add(n);
+      link(p, n);
+      for (var v : p.bucket) {
+        var y = ancestorWithLowestSemi(v);
+        if (y.semi == v.semi)
+          v.idom = p;
+        else
+          v.samedom = y;
       }
+      p.bucket.clear();
     }
-    block.df = new ArrayList<>(S);
-  }
-
-  class QueueNode implements Comparable<QueueNode> {
-    public int dfn;
-    public BasicBlock block;
-
-    public QueueNode(int dfn, BasicBlock block) {
-      this.dfn = dfn;
-      this.block = block;
-    }
-
-    @Override
-    public int compareTo(QueueNode o) {
-      if (this.dfn > o.dfn)
-        return 1;
-      if (this.dfn < o.dfn)
-        return -1;
-      return 0;
+    for (int i = 1; i <= dfn - 1; ++i) {
+      var n = dfnOrder.get(i);
+      if (n.samedom != null)
+        n.idom = n.samedom.idom;
     }
   }
 
-  HashMap<BasicBlock, QueueNode> nodeMap = new HashMap<>();
-  ArrayList<BasicBlock> dfnOrder = new ArrayList<>();
-  PriorityQueue<QueueNode> queue = new PriorityQueue<>();
-
-  private int dfn;
-
-  private void dfs(BasicBlock block) {
-    nodeMap.put(block, new QueueNode(dfn, block));
-    dfnOrder.add(block);
-    dfn++;
-    for (var b : block.nexts) {
-      if (nodeMap.containsKey(b))
-        continue;
-      dfs(b);
+  Node ancestorWithLowestSemi(Node v) {
+    var a = v.ancestor;
+    if (a.ancestor != null) {
+      var b = ancestorWithLowestSemi(a);
+      v.ancestor = a.ancestor;
+      if (b.semi.dfn < v.best.semi.dfn)
+        v.best = b;
     }
+    return v.best;
+  }
+
+  void link(Node p, Node n) {
+    n.ancestor = p;
+    n.best = n;
   }
 }

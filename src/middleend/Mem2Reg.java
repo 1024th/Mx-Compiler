@@ -57,14 +57,14 @@ public class Mem2Reg {
     }
     while (!queue.isEmpty()) {
       var node = queue.poll();
-      for (var frontier : node.df) {
-        if (visited.contains(frontier))
+      for (var frontier : node.dtNode.domFrontier) {
+        if (visited.contains(frontier.origin))
           continue;
-        visited.add(frontier);
+        visited.add(frontier.origin);
 
-        queue.offer(frontier);
+        queue.offer(frontier.origin);
         var phi = new PhiInst(((PointerType) alloca.type).elemType,
-            irBuilder.rename(alloca.name), frontier);
+            irBuilder.rename(alloca.name), frontier.origin);
         phiAllocaName.put(phi, alloca.name);
       }
     }
@@ -140,7 +140,9 @@ public class Mem2Reg {
       }
     }
 
-    block.dtChildren.forEach(this::variableRenaming);
+    for (var node : block.dtNode.children) {
+      variableRenaming(node.origin);
+    }
 
     for (var name : popList) {
       nameStack.get(name).pop();
