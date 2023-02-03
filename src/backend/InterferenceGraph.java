@@ -54,9 +54,9 @@ public class InterferenceGraph {
     @Override
     public int compareTo(Node o) {
       if (degree < o.degree)
-        return 1;
-      if (degree > o.degree)
         return -1;
+      if (degree > o.degree)
+        return 1;
       return 0;
     }
   }
