@@ -244,11 +244,24 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(IfStmtNode node) {
+    node.condition.accept(this);
+    if (node.condition.val instanceof IntConst c) {
+      if (c.val == 1) {
+        curScope = node.thenScope;
+        node.thenStmt.accept(this);
+        curScope = curScope.parent;
+      } else {
+        curScope = node.elseScope;
+        node.elseStmt.accept(this);
+        curScope = curScope.parent;
+      }
+      return;
+    }
+
     var thenBlock = newBlock("if.then");
     var elseBlock = newBlock("if.else");
     var endBlock = newBlock("if.end");
 
-    node.condition.accept(this);
     new BrInst(getValue(node.condition), thenBlock, elseBlock, curBlock);
 
     curBlock = thenBlock;
