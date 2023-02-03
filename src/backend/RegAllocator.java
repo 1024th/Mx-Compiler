@@ -573,12 +573,12 @@ public class RegAllocator {
       for (var inst : oldInsts) {
         for (var reg : inst.uses()) {
           var regAlias = getAlias(reg);
-          if (regAlias != reg) {
-            inst.replaceUse(reg, regAlias.color);
-          }
 
-          if (!spilledNodes.contains(reg))
+          if (!spilledNodes.contains(regAlias)) {
+            if (regAlias != reg)
+              inst.replaceUse(reg, regAlias);
             continue;
+          }
           var tmp = new VirtualReg(((VirtualReg) reg).size);
           new LoadInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
           inst.replaceUse(reg, tmp);
@@ -587,14 +587,11 @@ public class RegAllocator {
         block.insts.add(inst);
         for (var reg : inst.defs()) {
           var regAlias = getAlias(reg);
-          if (regAlias != reg) {
-            inst.replaceDef(reg, regAlias.color);
-            if (debug)
-              System.out.printf("replace %s with %s\n", reg, regAlias.color);
-          }
-
-          if (!spilledNodes.contains(reg))
+          if (!spilledNodes.contains(regAlias)) {
+            if (regAlias != reg)
+              inst.replaceDef(reg, regAlias);
             continue;
+          }
           var tmp = new VirtualReg(((VirtualReg) reg).size);
           new StoreInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
           inst.replaceDef(reg, tmp);
