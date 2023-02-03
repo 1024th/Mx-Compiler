@@ -433,35 +433,34 @@ public class IRBuilder implements ASTVisitor {
     }
 
     // @formatter:off
-    String op = null;
-    switch (node.op) {
-      case "==": op = "eq";  break;
-      case "!=": op = "ne";  break;
-      case ">":  op = "sgt"; break;
-      case ">=": op = "sge"; break;
-      case "<":  op = "slt"; break;
-      case "<=": op = "sle"; break;
-    }
+    String op = switch (node.op) {
+      case "==" -> "eq";
+      case "!=" -> "ne";
+      case ">"  -> "sgt";
+      case ">=" -> "sge";
+      case "<"  -> "slt";
+      case "<=" -> "sle";
+      default -> null;
+    };
     // @formatter:on
     if (op != null) {
       node.val = new IcmpInst(op, getValue(node.lhs), getValue(node.rhs), nextName(), curBlock);
       return;
     }
 
-    // @formatter:off
-    switch (node.op) {
-      case "+": op = "add"; break;
-      case "-": op = "sub"; break;
-      case "*": op = "mul"; break;
-      case "/": op = "sdiv"; break;
-      case "%": op = "srem"; break;
-      case "&": op = "and"; break;
-      case "|": op = "or";  break;
-      case "^": op = "xor"; break;
-      case "<<": op = "shl"; break;
-      case ">>": op = "ashr"; break;
-    }
-    // @formatter:on
+    op = switch (node.op) {
+      case "+" -> "add";
+      case "-" -> "sub";
+      case "*" -> "mul";
+      case "/" -> "sdiv";
+      case "%" -> "srem";
+      case "&" -> "and";
+      case "|" -> "or";
+      case "^" -> "xor";
+      case "<<" -> "shl";
+      case ">>" -> "ashr";
+      default -> null;
+    };
     node.val = newBinary(op, getValue(node.lhs), getValue(node.rhs), "%" + op);
   }
 
@@ -616,15 +615,11 @@ public class IRBuilder implements ASTVisitor {
   public void visit(PostfixExprNode node) {
     node.expr.accept(this);
     node.val = getValue(node.expr);
-    Value val = null;
-    switch (node.op) {
-      case "++":
-        val = newBinary("add", node.val, new IntConst(1), "%inc");
-        break;
-      case "--":
-        val = newBinary("sub", node.val, new IntConst(1), "%dec");
-        break;
-    }
+    Value val = switch (node.op) {
+      case "++" -> newBinary("add", node.val, new IntConst(1), "%inc");
+      case "--" -> newBinary("sub", node.val, new IntConst(1), "%dec");
+      default -> null;
+    };
     newStore(val, node.expr.ptr);
   }
 
@@ -632,36 +627,24 @@ public class IRBuilder implements ASTVisitor {
   public void visit(PrefixExprNode node) {
     node.expr.accept(this);
     node.ptr = node.expr.ptr;
-    switch (node.op) {
-      case "++":
-        node.val = newBinary("add", getValue(node.expr), new IntConst(1), "%inc");
-        break;
-      case "--":
-        node.val = newBinary("sub", getValue(node.expr), new IntConst(1), "%dec");
-        break;
-    }
+    node.val = switch (node.op) {
+      case "++" -> newBinary("add", getValue(node.expr), new IntConst(1), "%inc");
+      case "--" -> newBinary("sub", getValue(node.expr), new IntConst(1), "%dec");
+      default -> null;
+    };
     newStore(node.val, node.ptr);
   }
 
   @Override
   public void visit(UnaryExprNode node) {
     node.expr.accept(this);
-    switch (node.op) {
-      case "+":
-        node.val = getValue(node.expr);
-        break;
-      case "-":
-        node.val = newBinary("sub", new IntConst(0), getValue(node.expr), "%sub");
-        break;
-      case "!":
-        node.val = newBinary("xor", getValue(node.expr), trueConst, "%lnot");
-        break;
-      case "~":
-        node.val = newBinary("xor", getValue(node.expr), new IntConst(-1), "%neg");
-        break;
-      default:
-        break;
-    }
+    node.val = switch (node.op) {
+      case "+" -> getValue(node.expr);
+      case "-" -> newBinary("sub", new IntConst(0), getValue(node.expr), "%sub");
+      case "!" -> newBinary("xor", getValue(node.expr), trueConst, "%lnot");
+      case "~" -> newBinary("xor", getValue(node.expr), new IntConst(-1), "%neg");
+      default -> null;
+    };
   }
 
   @Override
@@ -923,17 +906,16 @@ public class IRBuilder implements ASTVisitor {
 
   private Function getStrMethod(String op) {
     // @formatter:off
-    String name;
-    switch (op) {
-      case "==": name = "eq"; break;
-      case "!=": name = "ne"; break;
-      case ">":  name = "gt"; break;
-      case ">=": name = "ge"; break;
-      case "<":  name = "lt"; break;
-      case "<=": name = "le"; break;
-      case "+": name = "cat"; break;
-      default: throw new IRBuildError("unknown str operator");
-    }
+    String name = switch (op) {
+      case "==" -> "eq";
+      case "!=" -> "ne";
+      case ">"  -> "gt";
+      case ">=" -> "ge";
+      case "<"  -> "lt";
+      case "<=" -> "le";
+      case "+"  -> "cat";
+      default -> throw new IRBuildError("unknown str operator");
+    };
     // @formatter:on
     return gScope.getFunc("__str_" + name);
   }
