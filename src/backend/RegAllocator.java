@@ -136,12 +136,11 @@ public class RegAllocator {
 
   void removeUselessMv() {
     for (var block : curFunc.blocks) {
-      var oldInsts = block.insts;
-      block.insts = new ArrayList<BaseInst>();
-      for (var inst : oldInsts) {
+      var iter = block.insts.iterator();
+      while (iter.hasNext()) {
+        var inst = iter.next();
         if (inst instanceof MvInst mv && mv.rs.color == mv.rd.color)
-          continue;
-        block.insts.add(inst);
+          iter.remove();
       }
     }
   }
@@ -568,9 +567,10 @@ public class RegAllocator {
     for (var block : curFunc.blocks) {
       if (debug)
         System.out.printf("rewrite %s:\n", block.label);
-      var oldInsts = block.insts;
-      block.insts = new ArrayList<BaseInst>();
-      for (var inst : oldInsts) {
+      var iter = block.insts.listIterator();
+      while (iter.hasNext()) {
+        var inst = iter.next();
+        iter.previous();
         for (var reg : inst.uses()) {
           var regAlias = getAlias(reg);
 
@@ -580,11 +580,13 @@ public class RegAllocator {
             continue;
           }
           var tmp = new VirtualReg(((VirtualReg) reg).size);
-          new LoadInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
+          var load = new LoadInst(tmp.size, tmp, PhysicalReg.sp,
+              regAlias.color.stackOffset, null);
+          iter.add(load);
           inst.replaceUse(reg, tmp);
           introduced.add(tmp);
         }
-        block.insts.add(inst);
+        iter.next();
         for (var reg : inst.defs()) {
           var regAlias = getAlias(reg);
           if (!spilledNodes.contains(regAlias)) {
@@ -593,7 +595,9 @@ public class RegAllocator {
             continue;
           }
           var tmp = new VirtualReg(((VirtualReg) reg).size);
-          new StoreInst(tmp.size, tmp, PhysicalReg.sp, regAlias.color.stackOffset, block);
+          var store = new StoreInst(tmp.size, tmp, PhysicalReg.sp,
+              regAlias.color.stackOffset, null);
+          iter.add(store);
           inst.replaceDef(reg, tmp);
           introduced.add(tmp);
         }

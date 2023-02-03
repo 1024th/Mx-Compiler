@@ -1,6 +1,6 @@
 package backend;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 import asm.Block;
 import asm.Function;
@@ -62,7 +62,7 @@ public class StupidRegAllocator implements asm.ModulePass, asm.FuncPass, asm.Blo
   public void runOnBlock(Block block) {
     curBlock = block;
     var oldInsts = block.insts;
-    block.insts = new ArrayList<>();
+    block.insts = new LinkedList<>();
     oldInsts.forEach(x -> x.accept(this));
   }
 

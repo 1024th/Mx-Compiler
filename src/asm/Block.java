@@ -2,13 +2,14 @@ package asm;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 
 import asm.inst.BaseInst;
 import asm.operand.Reg;
 
 public class Block extends Operand {
   public String label;
-  public ArrayList<BaseInst> insts = new ArrayList<>();
+  public LinkedList<BaseInst> insts = new LinkedList<>();
 
   /** for control flow graph */
   public ArrayList<Block> prevs = new ArrayList<>(), nexts = new ArrayList<>();
