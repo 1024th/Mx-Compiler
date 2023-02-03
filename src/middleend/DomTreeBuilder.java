@@ -19,7 +19,7 @@ public class DomTreeBuilder {
 
   void debugPrint(BasicBlock block) {
     var p = System.out;
-    p.printf("%s:\n", block.name);
+    p.printf("%s:  ; preds = %s\n", block.name, TextUtils.join(block.prevs));
     var node = block.dtNode;
     p.printf("; idom: %s\n", node.idom);
     if (!node.children.isEmpty())
@@ -45,7 +45,7 @@ public class DomTreeBuilder {
     for (var c : node.children) {
       computeDF(c);
       for (var w : c.domFrontier) {
-        if (!node.isDominatorOf(w))
+        if (node == w || !node.isDominatorOf(w))
           S.add(w);
       }
     }
@@ -68,7 +68,7 @@ public class DomTreeBuilder {
     }
 
     public void clear() {
-      dfn = 0;
+      dfn = -1;
       semi = samedom = idom = ancestor = best = null;
       bucket.clear();
     }
@@ -81,6 +81,11 @@ public class DomTreeBuilder {
       }
       return false;
     }
+
+    @Override
+    public String toString() {
+      return origin.toString();
+    }
   }
 
   ArrayList<Node> dfnOrder = new ArrayList<>();
@@ -88,7 +93,7 @@ public class DomTreeBuilder {
   private int dfn;
 
   private void dfs(Node p, Node n) {
-    if (n.dfn != 0)
+    if (n.dfn > 0)
       return;
     n.dfn = dfn;
     dfnOrder.add(n);
@@ -111,8 +116,10 @@ public class DomTreeBuilder {
       var p = n.parent;
       var s = p;
       for (var v : n.origin.prevs) {
+        if (v.dtNode.dfn < 0)
+          continue;
         Node ss;
-        if (v.dtNode.dfn < n.dfn)
+        if (v.dtNode.dfn <= n.dfn)
           ss = v.dtNode;
         else
           ss = ancestorWithLowestSemi(v.dtNode).semi;
