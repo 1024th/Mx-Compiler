@@ -90,7 +90,6 @@ public class InstSelector implements ir.IRVisitor {
   public void visit(ir.Function func) {
     curFunc = (asm.Function) func.asm;
     module.funcs.add(curFunc);
-    VirtualReg.cnt = 0;
 
     for (var block : func.blocks) {
       block.asm = new Block(block.name, block.loopDepth);

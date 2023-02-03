@@ -10,6 +10,7 @@ import asm.operand.PhysicalReg;
 import asm.operand.Reg;
 import asm.operand.StackOffset;
 import asm.operand.VirtualReg;
+import asm.operand.StackOffset.StackOffsetType;
 
 public class StupidRegAllocator implements asm.ModulePass, asm.FuncPass, asm.BlockPass, asm.InstVisitor {
   asm.Module module;
@@ -22,10 +23,12 @@ public class StupidRegAllocator implements asm.ModulePass, asm.FuncPass, asm.Blo
 
   private PhysicalReg regAllocRead(Reg src, PhysicalReg reg) {
     if (src instanceof VirtualReg v) {
-      curFunc.spilledReg = Math.max(curFunc.spilledReg, v.index + 1);
-      var o = new StackOffset(v.index, StackOffset.StackOffsetType.spill);
+      if (src.stackOffset == null) {
+        src.stackOffset = new StackOffset(curFunc.spilledReg, StackOffsetType.spill);
+        curFunc.spilledReg++;
+      }
       // TODO long offset lui
-      new asm.inst.LoadInst(4, reg, sp, o, curBlock);
+      new asm.inst.LoadInst(4, reg, sp, src.stackOffset, curBlock);
       return reg;
     }
     return (PhysicalReg) src;
@@ -33,10 +36,12 @@ public class StupidRegAllocator implements asm.ModulePass, asm.FuncPass, asm.Blo
 
   private PhysicalReg regAllocWrite(Reg dest, PhysicalReg reg) {
     if (dest instanceof VirtualReg v) {
-      curFunc.spilledReg = Math.max(curFunc.spilledReg, v.index + 1);
-      var o = new StackOffset(v.index, StackOffset.StackOffsetType.spill);
+      if (dest.stackOffset == null) {
+        dest.stackOffset = new StackOffset(curFunc.spilledReg, StackOffsetType.spill);
+        curFunc.spilledReg++;
+      }
       // TODO long offset lui
-      new asm.inst.StoreInst(4, reg, sp, o, curBlock);
+      new asm.inst.StoreInst(4, reg, sp, dest.stackOffset, curBlock);
       return reg;
     }
     return (PhysicalReg) dest;
