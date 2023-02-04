@@ -2,6 +2,7 @@ package backend;
 
 import asm.inst.ITypeInst;
 import asm.inst.JumpInst;
+import asm.operand.Relocation;
 
 public class RemoveUselessInst {
   public void runOnModule(asm.Module module) {
@@ -17,7 +18,8 @@ public class RemoveUselessInst {
         var inst = iter.next();
         if (inst instanceof ITypeInst iinst
             && (iinst.op.equals("addi") || iinst.op.equals("subi"))
-            && iinst.rd == iinst.rs && iinst.imm.val == 0) {
+            && iinst.rd == iinst.rs && !(iinst.imm instanceof Relocation)
+            && iinst.imm.val == 0) {
           iter.remove();
         }
       }

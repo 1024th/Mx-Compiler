@@ -9,32 +9,35 @@ import utils.BuiltinAsmPrinter;
 
 public class BackEnd {
   MiddleEnd middleEnd;
+  asm.Module asmModule;
   boolean debug;
 
   public BackEnd(MiddleEnd middleEnd, boolean debug) throws Exception {
     this.middleEnd = middleEnd;
     this.debug = debug;
 
-    var asmModule = new asm.Module();
+    this.asmModule = new asm.Module();
     new InstSelector(asmModule).visit(middleEnd.irModule);
-    if (debug) {
-      var asmFile = new FileOutputStream("output.s.no.regalloc");
-      var asm = new PrintStream(asmFile);
-      new ASMPrinter(asm).runOnModule(asmModule);
-      asmFile.close();
-    }
+    if (debug)
+      printAsm("output.s.no.regalloc");
     new RegAllocator(debug).runOnModule(asmModule);
     // new StupidRegAllocator().runOnModule(asmModule);
     new StackAllocator().runOnModule(asmModule);
     new BlockMerging().runOnModule(asmModule);
     new BlockPlacement().runOnModule(asmModule);
+    if (debug)
+      printAsm("output-placement.s");
     new RemoveUselessInst().runOnModule(asmModule);
 
-    var asmFile = new FileOutputStream("output.s");
+    printAsm("output.s");
+
+    new BuiltinAsmPrinter("builtin.s");
+  }
+
+  void printAsm(String filename) throws Exception {
+    var asmFile = new FileOutputStream(filename);
     var asm = new PrintStream(asmFile);
     new ASMPrinter(asm).runOnModule(asmModule);
     asmFile.close();
-
-    new BuiltinAsmPrinter("builtin.s");
   }
 }
