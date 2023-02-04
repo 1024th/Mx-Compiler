@@ -5,7 +5,6 @@ import java.util.HashSet;
 import ir.BasicBlock;
 
 /**
- * Performs dead block elimination and basic block merging. Specifically:
  * <ul>
  * <li>Removes basic blocks with no predecessors.
  * <li>Eliminates PHI nodes for basic blocks with a single predecessor.

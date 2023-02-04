@@ -10,9 +10,7 @@ public class BlockMerging {
   public void runOnFunc(asm.Function func) {
     blockMoveMap.clear();
     for (var pred : func.blocks) {
-      var block = getAlias(pred);
-      if (block != null)
-        pred = block;
+      pred = getAlias(pred);
       if (pred.nexts.size() != 1)
         continue;
       var succ = pred.nexts.get(0);
