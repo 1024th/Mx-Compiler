@@ -2,6 +2,10 @@ package middleend;
 
 /** Control Flow Graph Builder */
 public class CFGBuilder {
+  public void runOnModule(ir.Module module) {
+    module.funcs.forEach(this::runOnFunc);
+  }
+
   public void runOnFunc(ir.Function func) {
     // clear old graph
     for (var block : func.blocks) {

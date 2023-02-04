@@ -19,18 +19,21 @@ public class MiddleEnd {
     this.irModule = this.irBuilder.module;
 
     var cfg = new CFGBuilder();
-    this.irModule.funcs.forEach(func -> cfg.runOnFunc(func));
+    cfg.runOnModule(irModule);
     debugPrint("out.ll");
 
     var mem2reg = new Mem2Reg(irBuilder);
     this.irModule.funcs.forEach(func -> mem2reg.runOnFunc(func));
     debugPrint("out-mem2reg.ll");
 
-    new ADCE().runOnModule(irModule);
+    new ADCE(debug).runOnModule(irModule);
     debugPrint("out-adce.ll");
 
     new PhiElimination().runOnModule(irModule);
     debugPrint("out-phi-elim.ll");
+
+    // make sure that Backend will get correct CFG info
+    cfg.runOnModule(irModule);
   }
 
   void debugPrint(String filename) throws Exception {
