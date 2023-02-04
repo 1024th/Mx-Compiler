@@ -247,11 +247,10 @@ public class InstSelector implements ir.IRVisitor {
     var ptrElemType = ((PointerType) ptr.type).elemType;
     if (ptrElemType instanceof ir.type.ArrayType) {
       // string constant
-      var reg = new VirtualReg();
+      var reg = getReg(inst);
       var s = (StringConst) ptr.asm;
       new LuiInst(reg, new Relocation(s, RelocationType.hi), curBlock);
       new ITypeInst("addi", reg, reg, new Relocation(s, RelocationType.lo), curBlock);
-      inst.asm = reg;
     } else if (ptrElemType instanceof ir.type.StructType) {
       // class member
       // getelementptr inbounds %cls, %cls* %ptr, i32 0, i32 member_index
@@ -331,7 +330,7 @@ public class InstSelector implements ir.IRVisitor {
       if (ptr.asm instanceof StackOffset x)
         new LoadInst(size, getReg(inst), sp, x, curBlock);
       else
-        new LoadInst(size, getReg(inst), (Reg) ptr.asm, new Imm(0), curBlock);
+        new LoadInst(size, getReg(inst), getReg(ptr), new Imm(0), curBlock);
     }
   }
 
@@ -356,7 +355,7 @@ public class InstSelector implements ir.IRVisitor {
       if (ptr.asm instanceof StackOffset x)
         new StoreInst(val.type.size(), getReg(val), sp, x, curBlock);
       else
-        new StoreInst(val.type.size(), getReg(val), (Reg) ptr.asm, new Imm(0), curBlock);
+        new StoreInst(val.type.size(), getReg(val), getReg(ptr), new Imm(0), curBlock);
     }
   }
 
