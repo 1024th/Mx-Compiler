@@ -8,9 +8,9 @@ public class BlockMerging {
   }
 
   public void runOnFunc(asm.Function func) {
-    var blockMoveMap = new HashMap<asm.Block, asm.Block>();
+    blockMoveMap.clear();
     for (var pred : func.blocks) {
-      var block = blockMoveMap.get(pred);
+      var block = getAlias(pred);
       if (block != null)
         pred = block;
       if (pred.nexts.size() != 1)
@@ -30,5 +30,16 @@ public class BlockMerging {
       if (blockMoveMap.containsKey(block))
         iter.remove();
     }
+  }
+
+  HashMap<asm.Block, asm.Block> blockMoveMap = new HashMap<>();
+
+  asm.Block getAlias(asm.Block block) {
+    var a = blockMoveMap.get(block);
+    if (a == null)
+      return block;
+    a = getAlias(a);
+    blockMoveMap.put(block, a);
+    return a;
   }
 }

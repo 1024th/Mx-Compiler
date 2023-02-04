@@ -29,6 +29,9 @@ public class MiddleEnd {
     new ADCE(debug).runOnModule(irModule);
     debugPrint("out-adce.ll");
 
+    new SimplifyCFG().runOnModule(irModule);
+    debugPrint("out-simplifycfg.ll");
+
     new PhiElimination().runOnModule(irModule);
     debugPrint("out-phi-elim.ll");
 

@@ -25,6 +25,16 @@ public class PhiInst extends BaseInst {
     addOperand(block);
   }
 
+  public void removeBranch(BasicBlock removedBlock) {
+    for (int i = 1; i < operands.size(); i += 2) {
+      if (getOperand(i) == removedBlock) {
+        operands.remove(i);
+        operands.remove(i - 1);
+        return;
+      }
+    }
+  }
+
   @Override
   public String toString() {
     var ret = "%s = phi %s ".formatted(name, type);
