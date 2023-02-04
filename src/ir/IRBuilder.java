@@ -250,7 +250,7 @@ public class IRBuilder implements ASTVisitor {
         curScope = node.thenScope;
         node.thenStmt.accept(this);
         curScope = curScope.parent;
-      } else {
+      } else if (node.elseStmt != null) {
         curScope = node.elseScope;
         node.elseStmt.accept(this);
         curScope = curScope.parent;
