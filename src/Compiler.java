@@ -4,17 +4,11 @@ import java.io.PrintStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import asm.ASMPrinter;
-import backend.BlockMerging;
-import backend.InstSelector;
-import backend.RegAllocator;
-import backend.StackAllocator;
-import backend.StupidRegAllocator;
+import backend.BackEnd;
 import frontend.FrontEnd;
 import grammar.MxLexer;
 import grammar.MxParser;
 import middleend.MiddleEnd;
-import utils.BuiltinAsmPrinter;
 import utils.MxErrorListener;
 
 public class Compiler {
@@ -34,24 +28,6 @@ public class Compiler {
     boolean debug = System.getProperty("user.name").equals("ltc");
     var middleEnd = new MiddleEnd(frontEnd, debug);
 
-    var asmModule = new asm.Module();
-    new InstSelector(asmModule).visit(middleEnd.irModule);
-    if (debug) {
-      var asmFile = new FileOutputStream("output.s.no.regalloc");
-      var asm = new PrintStream(asmFile);
-      new ASMPrinter(asm).runOnModule(asmModule);
-      asmFile.close();
-    }
-    new RegAllocator(debug).runOnModule(asmModule);
-    // new StupidRegAllocator().runOnModule(asmModule);
-    new StackAllocator().runOnModule(asmModule);
-    new BlockMerging().runOnModule(asmModule);
-
-    var asmFile = new FileOutputStream("output.s");
-    var asm = new PrintStream(asmFile);
-    new ASMPrinter(asm).runOnModule(asmModule);
-    asmFile.close();
-
-    new BuiltinAsmPrinter("builtin.s");
+    var backEnd = new BackEnd(middleEnd, debug);
   }
 }
