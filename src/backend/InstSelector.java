@@ -251,10 +251,8 @@ public class InstSelector implements ir.IRVisitor {
     } else if (ptrElemType instanceof ir.type.StructType) {
       // class member
       // getelementptr inbounds %cls, %cls* %ptr, i32 0, i32 member_index
-      var tmp = new VirtualReg();
-      // TODO optimize
-      new ITypeInst("slli", tmp, getReg(inst.getOperand(2)), new Imm(2), curBlock);
-      new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
+      var idx = (ir.constant.IntConst) inst.getOperand(2);
+      new ITypeInst("addi", getReg(inst), getReg(ptr), new Imm(idx.val * 4), curBlock);
     } else {
       // array, element type will only be int/bool/pointer (will not be char)
       // getelementptr inbounds int, int* %arr, i32 index
@@ -354,16 +352,12 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(TruncInst inst) {
-    var tmp = new VirtualReg();
-    new ITypeInst("andi", tmp, getReg(inst.getOperand(0)), new Imm(1), curBlock);
-    new MvInst(getReg(inst), tmp, curBlock);
+    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
   }
 
   @Override
   public void visit(ZextInst inst) {
-    var tmp = new VirtualReg();
-    new ITypeInst("andi", tmp, getReg(inst.getOperand(0)), new Imm(1), curBlock);
-    new MvInst(getReg(inst), tmp, curBlock);
+    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
   }
 
   @Override
