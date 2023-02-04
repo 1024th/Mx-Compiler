@@ -1,9 +1,11 @@
 package ir;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import ir.constant.Constant;
 import ir.type.FuncType;
+import middleend.Loop;
 
 public class Function extends Constant {
   public ArrayList<BasicBlock> blocks = new ArrayList<>();
@@ -12,6 +14,8 @@ public class Function extends Constant {
   public Value retValPtr;
 
   public boolean isMember;
+
+  public HashSet<Loop> rootLoops = new HashSet<>();
 
   public Function(FuncType type, String name, boolean isMember) {
     super(type, name);

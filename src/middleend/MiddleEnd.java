@@ -32,6 +32,12 @@ public class MiddleEnd {
     new SimplifyCFG().runOnModule(irModule);
     debugPrint("out-simplifycfg.ll");
 
+    new LICM(irBuilder).runOnModule(irModule);
+    debugPrint("out-licm.ll");
+
+    new SimplifyCFG().runOnModule(irModule);
+    debugPrint("out-simplifycfg2.ll");
+
     new PhiElimination().runOnModule(irModule);
     debugPrint("out-phi-elim.ll");
 

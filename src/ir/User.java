@@ -19,4 +19,15 @@ public class User extends Value {
   public Value getOperand(int i) {
     return this.operands.get(i);
   }
+
+  public void replaceOperand(Value oldVal, Value newVal) {
+    for (int i = 0; i < operands.size(); ++i) {
+      var op = getOperand(i);
+      if (op != oldVal)
+        continue;
+      oldVal.users.remove(this);
+      operands.set(i, newVal);
+      newVal.addUser(this);
+    }
+  }
 }

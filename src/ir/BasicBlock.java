@@ -5,6 +5,7 @@ import java.util.LinkedList;
 
 import ir.inst.AllocaInst;
 import ir.inst.BaseInst;
+import ir.inst.BrInst;
 import ir.inst.PhiInst;
 import ir.type.LabelType;
 import middleend.DomTreeBuilder.Node;
@@ -28,13 +29,12 @@ public class BasicBlock extends Value {
   /** for register allocation and optimize */
   public int loopDepth;
 
-  public BasicBlock(String name, Function parent, int loopDepth) {
+  public BasicBlock(String name, Function parent) {
     super(new LabelType(), name);
     this.parent = parent;
     if (parent != null) {
       parent.blocks.add(this);
     }
-    this.loopDepth = loopDepth;
   }
 
   public void addInst(BaseInst inst) {
@@ -51,6 +51,7 @@ public class BasicBlock extends Value {
 
   public void addInstBeforeTerminator(BaseInst inst) {
     insts.add(insts.size() - 1, inst);
+    inst.parent = this;
   }
 
   public BaseInst getTerminator() {
@@ -68,6 +69,24 @@ public class BasicBlock extends Value {
       }
     }
     insts.add(allocaInst);
+  }
+
+  public void redirectPred(BasicBlock oldPred, BasicBlock newPred) {
+    this.prevs.remove(oldPred);
+    this.prevs.add(newPred);
+    for (var phi : this.phiInsts) {
+      phi.replaceOperand(oldPred, newPred);
+    }
+  }
+
+  public void redirectSucc(BasicBlock oldSucc, BasicBlock newSucc) {
+    this.nexts.remove(oldSucc);
+    this.nexts.add(newSucc);
+    for (var inst : this.insts) {
+      if (inst instanceof BrInst br) {
+        br.replaceOperand(oldSucc, newSucc);
+      }
+    }
   }
 
   @Override

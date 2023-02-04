@@ -18,7 +18,6 @@ public class IRBuilder implements ASTVisitor {
   private Scope curScope;
   private Function curFunc;
   private BasicBlock curBlock;
-  private int curLoopDepth = 0;
 
   // for class
   private ClassScope clsScope;
@@ -204,11 +203,10 @@ public class IRBuilder implements ASTVisitor {
 
   @Override
   public void visit(ForStmtNode node) {
-    var endBlock = newBlock("for.end");
-    curLoopDepth++;
     var condBlock = newBlock("for.cond");
     var bodyBlock = newBlock("for.body");
     var incBlock = newBlock("for.inc");
+    var endBlock = newBlock("for.end");
     node.scope.continueBlock = incBlock;
     node.scope.breakBlock = endBlock;
     curScope = node.scope;
@@ -239,7 +237,6 @@ public class IRBuilder implements ASTVisitor {
 
     curBlock = endBlock;
     curScope = curScope.parent;
-    curLoopDepth++;
   }
 
   @Override
@@ -972,7 +969,7 @@ public class IRBuilder implements ASTVisitor {
   }
 
   private BasicBlock newBlock(String name) {
-    return new BasicBlock(rename(name), curFunc, curLoopDepth); // TODO: "%" + name?
+    return new BasicBlock(rename(name), curFunc); // TODO: "%" + name?
   }
 
   private Function getStrMethod(String op) {
