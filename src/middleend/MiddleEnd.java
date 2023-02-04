@@ -26,6 +26,9 @@ public class MiddleEnd {
     this.irModule.funcs.forEach(func -> mem2reg.runOnFunc(func));
     debugPrint("out-mem2reg.ll");
 
+    new ADCE().runOnModule(irModule);
+    debugPrint("out-adce.ll");
+
     new PhiElimination().runOnModule(irModule);
     debugPrint("out-phi-elim.ll");
   }

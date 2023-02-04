@@ -53,6 +53,12 @@ public class BasicBlock extends Value {
     insts.add(insts.size() - 1, inst);
   }
 
+  public BaseInst getTerminator() {
+    if (!this.terminated)
+      throw new Error("get terminator of unterminated block");
+    return insts.getLast();
+  }
+
   public void addAlloca(AllocaInst allocaInst) {
     for (int i = 0; i < insts.size(); ++i) {
       var inst = insts.get(i);

@@ -8,11 +8,35 @@ import utils.TextUtils;
 
 /** Dominator Tree Builder */
 public class DomTreeBuilder {
+  boolean reversed;
+
+  /**
+   * @param reversed use reversed control flow graph
+   */
+  public DomTreeBuilder(boolean reversed) {
+    this.reversed = reversed;
+  }
+
+  public DomTreeBuilder() {
+    this(false);
+  }
+
+  BasicBlock entry(ir.Function func) {
+    return reversed ? func.exitBlock : func.entryBlock;
+  }
+
+  ArrayList<BasicBlock> predecessor(Node node) {
+    return reversed ? node.origin.nexts : node.origin.prevs;
+  }
+
+  ArrayList<BasicBlock> successor(Node node) {
+    return reversed ? node.origin.prevs : node.origin.nexts;
+  }
 
   public void runOnFunc(ir.Function func) {
     computeIDom(func);
     computeChlidren(func);
-    computeDF(func.entryBlock.dtNode);
+    computeDF(entry(func).dtNode);
 
     // func.blocks.forEach(this::debugPrint);
   }
@@ -37,7 +61,7 @@ public class DomTreeBuilder {
 
   void computeDF(Node node) {
     var S = new HashSet<Node>();
-    for (var nxtBlock : node.origin.nexts) {
+    for (var nxtBlock : successor(node)) {
       var nxt = nxtBlock.dtNode;
       if (nxt.idom != node)
         S.add(nxt);
@@ -69,8 +93,10 @@ public class DomTreeBuilder {
 
     public void clear() {
       dfn = -1;
-      semi = samedom = idom = ancestor = best = null;
+      parent = semi = samedom = idom = ancestor = best = null;
       bucket.clear();
+      children.clear();
+      domFrontier.clear();
     }
 
     public boolean isDominatorOf(Node o) {
@@ -99,7 +125,7 @@ public class DomTreeBuilder {
     dfnOrder.add(n);
     n.parent = p;
     dfn++;
-    for (var succ : n.origin.nexts) {
+    for (var succ : successor(n)) {
       dfs(n, succ.dtNode);
     }
   }
@@ -110,12 +136,12 @@ public class DomTreeBuilder {
     for (var b : func.blocks) {
       b.dtNode.clear();
     }
-    dfs(null, func.entryBlock.dtNode);
+    dfs(null, entry(func).dtNode);
     for (int i = dfn - 1; i >= 1; --i) {
       var n = dfnOrder.get(i);
       var p = n.parent;
       var s = p;
-      for (var v : n.origin.prevs) {
+      for (var v : predecessor(n)) {
         if (v.dtNode.dfn < 0)
           continue;
         Node ss;
