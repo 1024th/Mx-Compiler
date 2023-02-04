@@ -198,13 +198,17 @@ public class InstSelector implements ir.IRVisitor {
           iop = "addi";
           val = -val;
         }
-        if (val < 1 << 11 && val >= -(1 << 11)) {
+        if (inImmRange(val)) {
           new ITypeInst(iop, getReg(inst), getReg(op1), new Imm(val), curBlock);
           return;
         }
       }
     }
     new RTypeInst(op, getReg(inst), getReg(op1), getReg(op2), curBlock);
+  }
+
+  boolean inImmRange(int val) {
+    return val < 1 << 11 && val >= -(1 << 11);
   }
 
   @Override
@@ -256,13 +260,25 @@ public class InstSelector implements ir.IRVisitor {
     } else {
       // array, element type will only be int/bool/pointer (will not be char)
       // getelementptr inbounds int, int* %arr, i32 index
-      // TODO optimize
+      var idx = inst.getOperand(1);
+      if (idx instanceof ir.constant.IntConst i) {
+        int val = i.val * ptrElemType.size();
+        if (inImmRange(val)) {
+          new ITypeInst("addi", getReg(inst), getReg(ptr),
+              new Imm(val), curBlock);
+        } else {
+          var tmp = new VirtualReg();
+          new LiInst(tmp, new Imm(val), curBlock);
+          new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
+        }
+        return;
+      }
       Reg tmp;
       if (ptrElemType.size() < 4) {
-        tmp = getReg(inst.getOperand(1));
+        tmp = getReg(idx);
       } else {
         tmp = new VirtualReg();
-        new ITypeInst("slli", tmp, getReg(inst.getOperand(1)), new Imm(2), curBlock);
+        new ITypeInst("slli", tmp, getReg(idx), new Imm(2), curBlock);
       }
       new RTypeInst("add", getReg(inst), getReg(ptr), tmp, curBlock);
     }
