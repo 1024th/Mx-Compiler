@@ -344,7 +344,6 @@ public class InstSelector implements ir.IRVisitor {
     }
   }
 
-  // TODO optimize following?
   @Override
   public void visit(BitCastInst inst) {
     MvOrLi(getReg(inst), inst.getOperand(0));
@@ -352,12 +351,12 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(TruncInst inst) {
-    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
+    MvOrLi(getReg(inst), inst.getOperand(0));
   }
 
   @Override
   public void visit(ZextInst inst) {
-    new MvInst(getReg(inst), getReg(inst.getOperand(0)), curBlock);
+    MvOrLi(getReg(inst), inst.getOperand(0));
   }
 
   @Override
@@ -366,7 +365,7 @@ public class InstSelector implements ir.IRVisitor {
 
   @Override
   public void visit(MoveInst inst) {
-    new MvInst(getReg(inst.dest()), getReg(inst.src()), curBlock);
+    MvOrLi(getReg(inst.dest()), inst.src());
   }
 
   void MvOrLi(Reg dest, ir.Value src) {
