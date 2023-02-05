@@ -19,4 +19,8 @@ public class Reg extends Operand {
       return super.toString();
     return color.toString();
   }
+
+  public String rawName() {
+    return super.toString();
+  }
 }

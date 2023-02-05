@@ -151,7 +151,35 @@ public class InstSelector implements ir.IRVisitor {
   @Override
   public void visit(ir.BasicBlock block) {
     curBlock = (Block) block.asm;
-    block.insts.forEach(x -> x.accept(this));
+    var iter = block.insts.listIterator(0);
+    while (iter.hasNext()) {
+      if (iter.nextIndex() >= block.insts.size() - 2)
+        break;
+      var inst = iter.next();
+      inst.accept(this);
+    }
+    var inst1 = iter.hasNext() ? iter.next() : null;
+    var inst2 = iter.hasNext() ? iter.next() : null;
+    if (inst1 instanceof IcmpInst icmp && inst2 instanceof ir.inst.BrInst br
+        && br.cond() == icmp && br.operands.size() > 1) {
+      var op = switch (icmp.op) {
+        case "eq" -> "bne";
+        case "ne" -> "beq";
+        case "sgt" -> "ble";
+        case "sge" -> "blt";
+        case "slt" -> "bge";
+        case "sle" -> "bgt";
+        default -> null;
+      };
+      new asm.inst.BrInst(op, getReg(icmp.op1()), getReg(icmp.op2()),
+          (Block) br.ifElse().asm, curBlock);
+      new JumpInst((Block) br.ifThen().asm, curBlock);
+    } else {
+      if (inst1 != null)
+        inst1.accept(this);
+      if (inst2 != null)
+        inst2.accept(this);
+    }
   }
 
   @Override
@@ -212,7 +240,7 @@ public class InstSelector implements ir.IRVisitor {
   }
 
   @Override
-  public void visit(BrInst inst) {
+  public void visit(ir.inst.BrInst inst) {
     if (inst.operands.size() == 1) {
       new JumpInst((Block) inst.dest().asm, curBlock);
     } else {

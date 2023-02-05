@@ -73,6 +73,13 @@ public class StupidRegAllocator implements asm.ModulePass, asm.FuncPass, asm.Blo
   }
 
   @Override
+  public void visit(BrInst inst) {
+    inst.rs1 = regAllocRead(inst.rs1, t0);
+    inst.rs2 = regAllocRead(inst.rs2, t1);
+    curBlock.addInst(inst);
+  }
+
+  @Override
   public void visit(CallInst inst) {
     curBlock.addInst(inst);
   }

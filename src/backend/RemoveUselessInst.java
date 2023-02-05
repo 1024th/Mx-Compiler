@@ -23,6 +23,8 @@ public class RemoveUselessInst {
           iter.remove();
         }
       }
+      if (block.insts.isEmpty())
+        continue;
       var t = block.insts.getLast();
       if (t instanceof JumpInst j && j.dest == nxtBlock)
         block.insts.remove(block.insts.size() - 1);
