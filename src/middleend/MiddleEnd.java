@@ -37,6 +37,9 @@ public class MiddleEnd {
 
     new SimplifyCFG().runOnModule(irModule);
     debugPrint("out-simplifycfg2.ll");
+    
+    new CSE().runOnModule(irModule);
+    debugPrint("out-subexpr.ll");
 
     new PhiElimination().runOnModule(irModule);
     debugPrint("out-phi-elim.ll");

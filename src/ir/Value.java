@@ -32,6 +32,7 @@ public class Value {
       }
       v.users.add(user);
     }
+    users.clear();
   }
 
   public String name() {
