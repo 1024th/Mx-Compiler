@@ -91,8 +91,7 @@ public class Peephole {
   boolean noStoreAfter(LoadInst load, List<BaseInst> peephole) {
     boolean inRange = false;
     for (var inst : peephole) {
-      if (inRange && inst instanceof StoreInst store &&
-          eq(store.ptr(), load.ptr())) {
+      if (inRange && inst instanceof StoreInst store) {
         return false;
       }
       if (inst == load)
