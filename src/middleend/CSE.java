@@ -8,6 +8,7 @@ import ir.Value;
 import ir.constant.IntConst;
 import ir.inst.BaseInst;
 import ir.inst.BinaryInst;
+import ir.inst.GetElementPtrInst;
 
 /**
  * Naive Common Subexpression Elimination.
@@ -64,6 +65,16 @@ public class CSE {
     if (prev instanceof BinaryInst b1 && next instanceof BinaryInst b2) {
       if (b1.op.equals(b2.op) && eq(b1.op1(), b2.op1()) && eq(b1.op2(), b2.op2()))
         return true;
+    }
+    if (prev instanceof GetElementPtrInst g1 &&
+        next instanceof GetElementPtrInst g2) {
+      if (g1.operands.size() != g2.operands.size())
+        return false;
+      for (int i = 0; i < g1.operands.size(); ++i) {
+        if (!eq(g1.getOperand(i), g2.getOperand(i)))
+          return false;
+      }
+      return true;
     }
     return false;
   }
