@@ -1,7 +1,8 @@
 package middleend;
 
-import java.util.ArrayDeque;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 
 import ir.BasicBlock;
 import ir.Value;
@@ -9,13 +10,14 @@ import ir.constant.IntConst;
 import ir.inst.BaseInst;
 import ir.inst.BinaryInst;
 import ir.inst.GetElementPtrInst;
+import ir.inst.LoadInst;
+import ir.inst.StoreInst;
 
 /**
- * Naive Common Subexpression Elimination.
  * This is just a peephole optimazation that finds out the same instruction
  * in the peephole and replace the latter with the former.
  */
-public class CSE {
+public class Peephole {
   int peepholeSize = 10;
 
   public void runOnModule(ir.Module module) {
@@ -29,11 +31,18 @@ public class CSE {
   }
 
   public void runOnBlock(BasicBlock block) {
-    var peephole = new ArrayDeque<BaseInst>();
+    var peephole = new LinkedList<BaseInst>();
     var removed = new HashSet<BaseInst>();
     for (var inst : block.insts) {
       for (var prev : peephole) {
         if (isSame(prev, inst)) {
+          inst.replaceAllUsesWith(prev);
+          removed.add(inst);
+        }
+        if (inst instanceof LoadInst load &&
+            prev instanceof LoadInst prevLoad &&
+            eq(load.ptr(), prevLoad.ptr()) &&
+            noStoreAfter(prevLoad, peephole)) {
           inst.replaceAllUsesWith(prev);
           removed.add(inst);
         }
@@ -77,5 +86,18 @@ public class CSE {
       return true;
     }
     return false;
+  }
+
+  boolean noStoreAfter(LoadInst load, List<BaseInst> peephole) {
+    boolean inRange = false;
+    for (var inst : peephole) {
+      if (inRange && inst instanceof StoreInst store &&
+          eq(store.ptr(), load.ptr())) {
+        return false;
+      }
+      if (inst == load)
+        inRange = true;
+    }
+    return true;
   }
 }
